@@ -31,7 +31,7 @@ const HomeScreen = () => {
             if (response.ok) {
                 const data = await response.json();
                 setaudioFiles(data.audioFiles);
-             } else {
+            } else {
                 setaudioFiles([])
             }
 
@@ -75,7 +75,7 @@ const HomeScreen = () => {
                     await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
                         encoding: FileSystem.EncodingType.Base64,
                     });
- 
+
                     // Unload any previously loaded sound
                     if (isLoaded) {
                         try {
@@ -113,7 +113,8 @@ const HomeScreen = () => {
     useEffect(() => {
         fetchAudioFiles();
         fetchvideoFiles();
-
+    }, []);
+    useEffect(() => {
         return () => {
             if (sound.current) {
                 sound.current.unloadAsync().catch((err) =>
@@ -126,8 +127,8 @@ const HomeScreen = () => {
                 );
             }
         };
-    }, []);
- 
+    }, []); 
+
 
     const stopSound = async () => {
         try {
@@ -147,7 +148,7 @@ const HomeScreen = () => {
             const response = await fetch(`${apiUrl}/video_files/${user.id}`)
             if (response.ok) {
                 const data = await response.json();
-                setvideoFiles(data.videoFiles); 
+                setvideoFiles(data.videoFiles);
             } else {
                 setvideoFiles([])
             }
@@ -156,7 +157,7 @@ const HomeScreen = () => {
             console.error('Error fetching video files:', error);
         }
     };
- 
+
 
 
     const playVideo = async (videoPath, id) => {
@@ -185,7 +186,7 @@ const HomeScreen = () => {
                     const base64data = fileReader.result.split(',')[1];
                     await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
                         encoding: FileSystem.EncodingType.Base64,
-                    }); 
+                    });
                     setVideoUri(cacheFilePath);
                     setPlayingVideoId(id);
                 };

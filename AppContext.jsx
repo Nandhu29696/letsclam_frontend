@@ -1,14 +1,15 @@
 // AppContext.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useState, useEffect } from 'react';
-
+ 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);  // Store user data here
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const apiUrl = 'http://ec2-98-83-213-50.compute-1.amazonaws.com:8080';
-  // const apiUrl = 'http://192.168.0.137:8080';
+
+  const apiUrl = "http://ec2-107-20-105-20.compute-1.amazonaws.com:8080";
+  console.log('API URL:', apiUrl);
 
   // Simulate loading user data after login
   const loadUserData = async () => {

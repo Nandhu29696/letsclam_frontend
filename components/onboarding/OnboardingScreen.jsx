@@ -46,6 +46,19 @@ const OnboardingScreen = () => {
   const scrollViewRef = useRef(null);
   const navigation = useNavigation();
 
+  const [outText, setOutText] = useState(null);
+  const fetchData = async () => {
+    try {
+      const response = await fetch('https://testapi12.free.beeceptor.com')
+      if (response.ok) {
+        const data = await response.text();
+        setOutText(data);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
   const handleNext = async () => {
     if (currentIndex < onboardingData.length - 1) {
       scrollViewRef.current.scrollTo({ x: (currentIndex + 1) * width, animated: true });
@@ -94,8 +107,7 @@ const OnboardingScreen = () => {
             <Text style={styles.description}>{item.description}</Text>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: item.buttonColor }]}
-              onPress={handleNext}
-            >
+              onPress={handleNext} >
               <Text style={styles.buttonText}>{item.buttonTitle}</Text>
             </TouchableOpacity>
           </View>

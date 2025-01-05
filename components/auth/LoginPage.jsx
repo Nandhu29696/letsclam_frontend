@@ -12,7 +12,7 @@ const LoginPage = ({ navigation }) => {
     const [emailorContactNo, setEmailorContactNo] = useState('');
     const [password, setPassword] = useState('');
     const { setUser, setIsLoggedIn, apiUrl } = useContext(AppContext);
- 
+
     const handleLoginPage = async (event) => {
         event.preventDefault();
         let loginData = {
@@ -43,7 +43,7 @@ const LoginPage = ({ navigation }) => {
             }
         } catch (error) {
             console.log(error);
-            Alert.alert('Error', 'Failed to Login');
+            Alert.alert('Failed to Login: ', apiUrl);
         }
     };
 
