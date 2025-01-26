@@ -10,14 +10,14 @@ import * as FileSystem from 'expo-file-system'
 const HomeScreen = () => {
 
     const { user, apiUrl } = useContext(AppContext);
-
+    const token = user.token.access;
     const [isRecording, setIsRecording] = useState(false);
     const sound = useRef(new Audio.Sound());
     const [isPlaying, setIsPlaying] = useState(false);
     const [playingAudioId, setPlayingAudioId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const navigation = useNavigation();
-
+ 
     const [audioFiles, setaudioFiles] = useState([])
     const [videoFiles, setvideoFiles] = useState([])
     const [videoUri, setVideoUri] = useState(null);
@@ -27,12 +27,19 @@ const HomeScreen = () => {
 
     const fetchAudioFiles = async () => {
         try {
-            const response = await fetch(`${apiUrl}/audio_files/${user.id}`)
+            const response = await fetch(`${apiUrl}/api/voice/audio/all/${user.userID}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
-                setaudioFiles(data.audioFiles);
+                setaudioFiles(data);
             } else {
-                setaudioFiles([])
+                console.error('Failed to fetch audio files. Status:', response.status);
+                setaudioFiles([]);
             }
 
         } catch (error) {
@@ -43,15 +50,17 @@ const HomeScreen = () => {
 
     const playSound = async (audioPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
+        console.log('audioPath', audioPath);
 
         let payload = {
-            filePath: audioPath,
+            file_path: audioPath,
         };
 
         const requestOptions = {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(payload),
         };
@@ -64,7 +73,7 @@ const HomeScreen = () => {
             }
 
             // Fetch the audio file from the API
-            const response = await fetch(`${apiUrl}/play_audio`, requestOptions);
+            const response = await fetch(`${apiUrl}/api/voice/audio/play`, requestOptions);
             if (response.ok) {
                 const blob = await response.blob();
 
@@ -127,7 +136,7 @@ const HomeScreen = () => {
                 );
             }
         };
-    }, []); 
+    }, []);
 
 
     const stopSound = async () => {
@@ -228,7 +237,7 @@ const HomeScreen = () => {
             <View style={styles.audioControls}>
                 <TouchableOpacity
                     style={[styles.playButton, playingAudioId === item.id && styles.playButtonActive]}
-                    onPress={() => playSound(item.fileName, item.id)}>
+                    onPress={() => playSound(item.file_name, item.id)}>
                     <Icon name="play" size={14} color={playingAudioId === item.id ? "white" : "#3caeff"} />
                     <Text style={[styles.buttonText, { color: playingAudioId === item.id ? "blue" : "#3caeff" }]}>Play</Text>
                 </TouchableOpacity>

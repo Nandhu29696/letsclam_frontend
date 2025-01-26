@@ -9,24 +9,25 @@ import { AppContext } from '../../AppContext';
 
 const LoginPage = ({ navigation }) => {
 
-    const [emailorContactNo, setEmailorContactNo] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { setUser, setIsLoggedIn, apiUrl } = useContext(AppContext);
-
+     
     const handleLoginPage = async (event) => {
         event.preventDefault();
         let loginData = {
-            emailorContactNo: emailorContactNo,
+            email: email,
             password: password,
         };
         try {
-            const response = await fetch(`${apiUrl}/api/auth/signin`, {
+            const response = await fetch(`${apiUrl}/api/user/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(loginData),
             });
+            
             const data = await response.json();
             if (response.ok) {
                 Toast.show({
@@ -42,7 +43,7 @@ const LoginPage = ({ navigation }) => {
                 Alert.alert('Error', data.message);
             }
         } catch (error) {
-            console.log(error);
+            console.log(error.message);
             Alert.alert('Failed to Login: ', apiUrl);
         }
     };
@@ -61,8 +62,8 @@ const LoginPage = ({ navigation }) => {
             <TextInput
                 style={styles.input}
                 placeholder="Email"
-                value={emailorContactNo}
-                onChangeText={setEmailorContactNo}
+                value={email}
+                onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
             />

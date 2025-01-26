@@ -8,9 +8,8 @@ export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);  // Store user data here
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const apiUrl = "http://ec2-107-20-105-20.compute-1.amazonaws.com:8080";
-  console.log('API URL:', apiUrl);
-
+  const apiUrl = "http://192.168.0.135:8000";
+  
   // Simulate loading user data after login
   const loadUserData = async () => {
     try {

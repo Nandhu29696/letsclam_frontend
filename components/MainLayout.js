@@ -50,6 +50,7 @@ const MainLayout = ({ children, navigation }) => {
     { title: 'About App', icon: 'information-circle-outline', screen: 'About' },
     { title: 'Upload Audio', icon: 'musical-notes', screen: 'AudioUpload' },
     { title: 'Upload Video', icon: 'videocam', screen: 'VideoUpload' },
+    { title: 'Record', icon: 'musical-notes', screen: 'VoiceRecordingScreen' },
     { title: 'Logout', icon: 'log-out-outline', screen: 'Logout' }
   ];
 
@@ -67,7 +68,7 @@ const MainLayout = ({ children, navigation }) => {
 
       {isSidebarVisible && (
         <View style={styles.sidebar}>
-          <Text style={styles.greetingText}>Hello, {user.fullName}</Text>
+          {/* <Text style={styles.greetingText}>Hello, {user.fullName}</Text> */}
           <ScrollView>
             {menuOptions.map((option, index) => (
               <TouchableOpacity

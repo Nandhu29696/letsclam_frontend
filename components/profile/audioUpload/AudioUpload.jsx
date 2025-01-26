@@ -2,7 +2,7 @@ import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import React, { useContext, useEffect, useState } from 'react';
 import {
-    Alert,
+    Alert, Switch,
     FlatList,
     Modal,
     StyleSheet,
@@ -18,6 +18,7 @@ import * as FileSystem from 'expo-file-system'
 
 const AudioUpload = () => {
     const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
+    const token = user.token.access;
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState(null);
@@ -27,13 +28,23 @@ const AudioUpload = () => {
     const [isLoaded, setIsLoaded] = useState(false);
     const sound = React.useRef(new Audio.Sound());
     const [playingAudioId, setPlayingAudioId] = useState(null); // State to track the currently playing audio
-
-
+    const [isGeneric, setIsGeneric] = useState(false);
 
     const fetchAudioFiles = async () => {
-        const response = await fetch(`${apiUrl}/audio_files/${user.id}`)
-        const data = await response.json();
-        setAudioFiles(data.audioFiles);
+        const response = await fetch(`${apiUrl}/api/voice/audio/all/${user.userID}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            setAudioFiles(data);
+        } else {
+            console.error('Failed to fetch audio files. Status:', response.status);
+            setAudioFiles([]);
+        }
     };
 
     useEffect(() => {
@@ -52,7 +63,10 @@ const AudioUpload = () => {
             console.error("Error picking file:", error);
         }
     };
-
+    function getFileExtension(filename) {
+        const parts = filename.split('.');
+        return parts.length > 1 ? parts.pop() : '';
+    }
     const uploadFile = async () => {
         if (!file || !title || !description) {
             Alert.alert('Error', 'Please fill in all fields and select a file.');
@@ -64,15 +78,21 @@ const AudioUpload = () => {
             name: file.name,
             type: file.mimeType,
         });
-        formData.append("user_id", user.id);
         formData.append("title", title);
         formData.append("description", description);
+        formData.append("is_generic", isGeneric);
+        formData.append("audio_type", getFileExtension(file.name));
+        console.log('formData', formData);
+
         const requestOptions = {
             method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${token}`
+            },
             body: formData,
         };
         try {
-            const response = await fetch(`${apiUrl}/uploadfile`, requestOptions);
+            const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
             console.log('response', response);
             if (response.ok) {
                 const data = await response.json();
@@ -85,38 +105,40 @@ const AudioUpload = () => {
             }
             fetchAudioFiles();
         } catch (error) {
-            console.error('Error uploading file:', error);
+            console.error('Error uploading file:', error.message);
             Alert.alert('Error', 'Error uploading file.');
         }
     };
 
     const playSound = async (audioPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-    
+        console.log('audioPath', audioPath);
+
         let payload = {
-            filePath: audioPath,
+            file_path: `audio/${audioPath}`,
         };
-    
+
         const requestOptions = {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(payload),
         };
-    
+
         try {
             // Clear the cache file if it exists
             const fileInfo = await FileSystem.getInfoAsync(cacheFilePath);
             if (fileInfo.exists) {
                 await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
             }
-    
+
             // Fetch the audio file from the API
-            const response = await fetch(`${apiUrl}/play_audio`, requestOptions);
+            const response = await fetch(`${apiUrl}/api/voice/audio/play`, requestOptions);
             if (response.ok) {
                 const blob = await response.blob();
-    
+
                 // Convert blob to base64 and save as a new file
                 const fileReader = new FileReader();
                 fileReader.onload = async () => {
@@ -124,9 +146,7 @@ const AudioUpload = () => {
                     await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
                         encoding: FileSystem.EncodingType.Base64,
                     });
-    
-                    console.log('File saved at:', cacheFilePath);
-    
+
                     // Unload any previously loaded sound
                     if (isLoaded) {
                         try {
@@ -137,10 +157,10 @@ const AudioUpload = () => {
                             console.error('Error unloading sound:', err);
                         }
                     }
-    
+
                     // Reset the sound instance (optional, for safe measure)
                     sound.current = new Audio.Sound();
-    
+
                     // Load and play the new sound
                     try {
                         await sound.current.loadAsync({ uri: cacheFilePath });
@@ -151,7 +171,7 @@ const AudioUpload = () => {
                         console.error('Error playing sound:', err);
                     }
                 };
-    
+
                 fileReader.readAsDataURL(blob);
             } else {
                 console.error('Error fetching audio file:', response.status);
@@ -160,7 +180,7 @@ const AudioUpload = () => {
             console.error('Error playing sound:', error);
         }
     };
-    
+
     useEffect(() => {
         return () => {
             sound.current.unloadAsync().catch((err) =>
@@ -193,27 +213,37 @@ const AudioUpload = () => {
                         <Icon name="stop" size={15} color="red" />
                     </TouchableOpacity>
                 ) : (
-                    <TouchableOpacity onPress={() => playSound(item.fileName, item.id)} style={styles.actionButton}>
+                    <TouchableOpacity onPress={() => playSound(item.file_name, item.id)} style={styles.actionButton}>
                         <Icon name="play-circle-outline" size={15} color="green" />
                     </TouchableOpacity>
                 )}
             </View>
         </View>
     );
+    const getFileNameFromUrl = (url) => {
+        return url.substring(url.lastIndexOf('/') + 1);
+    };
+    const getMimeTypeFromUrl = (url) => {
+        const extension = url.substring(url.lastIndexOf('.') + 1).toLowerCase();
+        const mimeTypes = {
+            mp3: 'audio/mpeg',
+            wav: 'audio/wav',
+            m4a: 'audio/mp4',
+        };
+        return mimeTypes[extension] || 'application/octet-stream';
+    };
 
     const handleEdit = (audio) => {
-        console.log(audio);
-
         setEditingAudioId(audio.id);
         setTitle(audio.title);
         setDescription(audio.description);
-        setFile({ uri: audio.audioUrl });
+        setIsGeneric(audio.is_generic)
+        setFile({
+            uri: audio.file_url,
+            name: getFileNameFromUrl(audio.file_url), 
+            type: getMimeTypeFromUrl(audio.file_url),  
+        });
         setModalVisible(true);
-    };
-
-    const handleDelete = (id) => {
-
-        Alert.alert(`Delete audio with ID: ${id}`);
     };
 
     return (
@@ -264,16 +294,16 @@ const AudioUpload = () => {
                             </Text>
                         </TouchableOpacity>
 
-                            {file && (
-                                <View style={styles.fileInfoCard}>
-                                    <FontAwesome name="file-audio-o" size={30} color="#1E90FF" />
-                                    <View style={styles.fileDetails}>
-                                        <Text style={styles.fileName}>{file.name}</Text>
-                                        <Text style={styles.fileMeta}>MIME: {file.mimeType}</Text>
-                                        <Text style={styles.fileMeta}>Size: {(file.size / 1024).toFixed(2)} KB</Text>
-                                    </View>
+                        {file && (
+                            <View style={styles.fileInfoCard}>
+                                <FontAwesome name="file-audio-o" size={30} color="#1E90FF" />
+                                <View style={styles.fileDetails}>
+                                    <Text style={styles.fileName}>{file.name}</Text>
+                                    <Text style={styles.fileMeta}>MIME: {file.mimeType}</Text>
+                                    <Text style={styles.fileMeta}>Size: {(file.size / 1024).toFixed(2)} KB</Text>
                                 </View>
-                            )}
+                            </View>
+                        )}
 
                         <TextInput
                             style={styles.input}
@@ -287,7 +317,13 @@ const AudioUpload = () => {
                             value={description}
                             onChangeText={setDescription}
                         />
-
+                        <View style={styles.checkboxContainer}>
+                            <Text style={styles.checkboxLabel}>Is Generic:</Text>
+                            <Switch
+                                value={isGeneric}
+                                onValueChange={setIsGeneric}
+                            />
+                        </View>
                         <View style={styles.btnContainer}>
                             <TouchableOpacity style={styles.button} onPress={uploadFile}>
                                 <Text style={styles.buttonText}>
@@ -519,6 +555,16 @@ const styles = StyleSheet.create({
     fileMeta: {
         fontSize: 14,
         color: '#555',
+    },
+
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    checkboxLabel: {
+        marginRight: 10,
+        fontSize: 16,
     },
 });
 
