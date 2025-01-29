@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { AppContext } from '../../AppContext';
 
 const ContinuousRecordingScreen = () => {
     const [recording, setRecording] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
     const [loading, setLoading] = useState(false);
     const [intervalId, setIntervalId] = useState(null);
+    const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
+    const token = user.token.access;
 
     const recordingOptions = {
         android: {
@@ -119,9 +122,9 @@ const ContinuousRecordingScreen = () => {
                     const newIntervalId = setInterval(async () => {
                         console.log('1-minute interval reached. Stopping recording...');
                         handlePauseAndSave(newRecording);
-                    }, 60000); 
+                    }, 60000);
                     setIntervalId(newIntervalId);
-                }, 500); 
+                }, 500);
             } else {
                 console.log('No recording to pause and save.');
             }
@@ -129,7 +132,7 @@ const ContinuousRecordingScreen = () => {
             console.error('Error during pause and save:', error);
         }
     };
-    
+
 
     const transcribeAudio = async (uri) => {
         try {
@@ -140,22 +143,23 @@ const ContinuousRecordingScreen = () => {
                 name: `audio-${Date.now()}.wav`,
                 type: 'audio/wav',
             });
-            const response = await fetch('http://192.168.0.135:8000/api/voice/transcribe', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                body: formData,
-            });
-            const data = await response.json();
-            console.log('API Response:', data);
+            // const response = await fetch('http://192.168.0.135:8000/api/voice/transcribe', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'multipart/form-data',
+            //         "Authorization": `Bearer ${token}`
+            //     },
+            //     body: formData,
+            // });
+            // const data = await response.json();
+            // console.log('API Response:', data);
         } catch (error) {
             console.error('Error uploading file:', error.message);
         } finally {
             setLoading(false);
         }
     };
-
+    
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Continuous Voice Recorder</Text>

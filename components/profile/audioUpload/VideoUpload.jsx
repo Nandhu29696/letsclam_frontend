@@ -4,12 +4,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { LinearProgress } from 'react-native-elements';
+import { LinearProgress, Switch } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
 
 const VideoUpload = () => {
     const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
+    const token = user.token.access;
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState(null);
@@ -20,6 +21,7 @@ const VideoUpload = () => {
     const [playingVideoId, setPlayingVideoId] = useState(null);
     const videoRef = useRef(null);
     const [loading, setLoading] = useState(false); // State for loading indicator
+    const [isGeneric, setIsGeneric] = useState(false);
 
 
     const fetchVideoFiles = async () => {
@@ -43,13 +45,16 @@ const VideoUpload = () => {
             });
             if (result) {
                 const selectedFile = result.assets[0];
-                 setFile(selectedFile);
+                setFile(selectedFile);
             }
         } catch (error) {
             console.error('Error picking file:', error);
         }
     };
- 
+    function getFileExtension(filename) {
+        const parts = filename.split('.');
+        return parts.length > 1 ? parts.pop() : '';
+    }
     const uploadFile = async () => {
 
         if (!file || !title || !description) {
@@ -63,18 +68,25 @@ const VideoUpload = () => {
             name: file.name,
             type: file.mimeType,
         });
-        formData.append('user_id', user.id);
         formData.append('title', title);
         formData.append('description', description);
-
+        formData.append("is_generic", isGeneric);
+        formData.append("audio_type", getFileExtension(file.name));
+        formData.append('user_id', user.id);
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${token}`
+            },
+            body: formData,
+        };
         try {
-            const response = await fetch(`${apiUrl}/uploadvfile`, {
-                method: 'POST',
-                body: formData,
-            });
-
+            const response = await fetch(`${apiUrl}/api/voice/upload-video`, requestOptions);
             if (response.ok) {
-                Alert.alert('Success', 'File uploaded successfully!');
+                Toast.show({
+                    text1: 'File uploaded successfully!',
+                    type: 'success',
+                });
                 fetchVideoFiles();
                 setModalVisible(false);
             } else {
@@ -233,6 +245,13 @@ const VideoUpload = () => {
                             value={description}
                             onChangeText={setDescription}
                         />
+                        <View style={styles.checkboxContainer}>
+                            <Text style={styles.checkboxLabel}>Is Generic:</Text>
+                            <Switch
+                                value={isGeneric}
+                                onValueChange={setIsGeneric}
+                            />
+                        </View>
                         <View style={styles.btnContainer}>
                             <TouchableOpacity style={styles.button} onPress={uploadFile}>
                                 <Text style={styles.buttonText}>
@@ -523,6 +542,15 @@ const styles = StyleSheet.create({
     loader: {
         position: 'absolute',
         zIndex: 1,
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    checkboxLabel: {
+        marginRight: 10,
+        fontSize: 16,
     },
 });
 

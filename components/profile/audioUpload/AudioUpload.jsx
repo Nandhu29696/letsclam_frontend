@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
 import { AntDesign, FontAwesome } from '@expo/vector-icons'; // Import icon library
 import * as FileSystem from 'expo-file-system'
+import Toast from 'react-native-toast-message';
 
 const AudioUpload = () => {
     const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
@@ -82,7 +83,6 @@ const AudioUpload = () => {
         formData.append("description", description);
         formData.append("is_generic", isGeneric);
         formData.append("audio_type", getFileExtension(file.name));
-        console.log('formData', formData);
 
         const requestOptions = {
             method: 'POST',
@@ -93,12 +93,14 @@ const AudioUpload = () => {
         };
         try {
             const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
-            console.log('response', response);
             if (response.ok) {
                 const data = await response.json();
                 console.log('data', data);
                 setModalVisible(false);
-                Alert.alert('Success', 'File uploaded successfully!');
+                Toast.show({
+                    text1: 'File uploaded successfully!',
+                    type: 'success',
+                });
             }
             else {
                 Alert.alert('error', 'File upload failed!');

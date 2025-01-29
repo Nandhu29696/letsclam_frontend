@@ -1,29 +1,202 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Audio, Video } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { AppContext } from '../../AppContext';
-import * as FileSystem from 'expo-file-system'
 
 const HomeScreen = () => {
 
     const { user, apiUrl } = useContext(AppContext);
     const token = user.token.access;
-    const [isRecording, setIsRecording] = useState(false);
     const sound = useRef(new Audio.Sound());
     const [isPlaying, setIsPlaying] = useState(false);
     const [playingAudioId, setPlayingAudioId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const navigation = useNavigation();
- 
+
     const [audioFiles, setaudioFiles] = useState([])
     const [videoFiles, setvideoFiles] = useState([])
     const [videoUri, setVideoUri] = useState(null);
     const videoRef = useRef(null);
-    const [loading, setLoading] = useState(false);
     const [playingVideoId, setPlayingVideoId] = useState(null);
+
+    const [recording, setRecording] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [intervalId, setIntervalId] = useState(null);
+    const [transcribedData, setTranscribedData] = useState(null);
+
+
+    const recordingOptions = {
+        android: {
+            extension: '.wav',
+            outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_PCM_16BIT,
+            audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_PCM_16BIT,
+            sampleRate: 44100,
+            numberOfChannels: 2,
+            bitRate: 128000,
+        },
+        ios: {
+            extension: '.wav',
+            audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+            sampleRate: 44100,
+            numberOfChannels: 2,
+            bitRate: 128000,
+            linearPCMBitDepth: 16,
+            linearPCMIsBigEndian: false,
+            linearPCMIsFloat: false,
+        },
+    };
+
+    useEffect(() => {
+        const initializeRecording = async () => {
+            const { granted } = await Audio.requestPermissionsAsync();
+            if (granted) {
+                await startRecording();
+            } else {
+                Alert.alert('Permission required', 'Microphone permission is required.');
+            }
+        };
+        initializeRecording();
+
+        return () => {
+            cleanupRecording();
+        };
+    }, []);
+
+    const cleanupRecording = async () => {
+        if (recording) {
+            try {
+                await recording.stopAndUnloadAsync();
+            } catch (error) {
+                console.error('Error during cleanup:', error);
+            }
+        }
+        clearInterval(intervalId);
+        setRecording(null);
+    };
+
+    const startRecording = async () => {
+        Toast.show({
+            text1: 'Starts Recording..',
+            type: 'success',
+        });
+
+        try {
+            const { granted } = await Audio.requestPermissionsAsync();
+            if (!granted) {
+                Alert.alert('Permission required', 'Microphone permission is required.');
+                return;
+            }
+            await cleanupRecording();
+            setIsRecording(true);
+            const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
+            setRecording(newRecording);
+            const id = setInterval(async () => {
+                console.log('1-minute interval reached. Stopping recording...');
+                await handlePauseAndSave(newRecording);
+            }, 60000);
+            setIntervalId(id);
+        } catch (error) {
+            console.error('Error starting recording:', error);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = async () => {
+        try {
+            setIsRecording(false);
+            clearInterval(intervalId);
+            if (recording) {
+                await recording.stopAndUnloadAsync();
+                const uri = recording.getURI();
+                console.log('Final recording saved at:', uri);
+                await transcribeAudio(uri);
+                setRecording(null);
+                Toast.show({
+                    text1: 'Recording Stopped..',
+                    type: 'success',
+                });
+            }
+        } catch (error) {
+            console.error('Error stopping recording:', error);
+        }
+    };
+
+    const handlePauseAndSave = async (currentRecording) => {
+        try {
+            if (currentRecording) {
+                console.log('Pausing and saving the current recording...');
+                const status = await currentRecording.getStatusAsync();
+                if (status.isRecording) {
+                    await currentRecording.stopAndUnloadAsync();
+                    const uri = currentRecording.getURI();
+                    console.log('Recording saved at:', uri);
+                    await transcribeAudio(uri);
+                }
+                setRecording(null);
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    setIntervalId(null);
+                }
+                setTimeout(async () => {
+                    console.log('Starting a new recording...');
+                    const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
+                    setRecording(newRecording);
+                    const newIntervalId = setInterval(async () => {
+                        console.log('1-minute interval reached. Stopping recording...');
+                        handlePauseAndSave(newRecording);
+                    }, 60000);
+                    setIntervalId(newIntervalId);
+                }, 500);
+            } else {
+                console.log('No recording to pause and save.');
+            }
+        } catch (error) {
+            console.error('Error during pause and save:', error);
+        }
+    };
+
+    const transcribeAudio = async (uri) => {
+        try {
+            setLoading(true);
+            const formData = new FormData();
+            formData.append('file', {
+                uri,
+                name: `audio-${Date.now()}.wav`,
+                type: 'audio/wav',
+            });
+            // const response = await fetch(`${apiUrl}/api/voice/transcribe`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'multipart/form-data',
+            //         "Authorization": `Bearer ${token}`
+            //     },
+            //     body: formData,
+            // });
+            // if (response.ok) {
+            //     const data = await response.json();
+            //     handleApiResponse(data);
+            // }
+        } catch (error) {
+            console.error('Error uploading file:', error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleApiResponse = (response) => {
+        const audioData = response.data;
+        if (audioData.length > 0) {
+            const { file_name, id } = audioData[0];
+            console.log('audioItem:', audioData[0])
+            playSound(file_name, id);
+        };
+    };
 
     const fetchAudioFiles = async () => {
         try {
@@ -53,7 +226,7 @@ const HomeScreen = () => {
         console.log('audioPath', audioPath);
 
         let payload = {
-            file_path: audioPath,
+            file_path: `audio/${audioPath}`,
         };
 
         const requestOptions = {
@@ -220,11 +393,6 @@ const HomeScreen = () => {
     };
 
 
-
-    const handleRecording = () => {
-        setIsRecording(!isRecording);
-    };
-
     const renderAudioFile = ({ item }) => (
         <View style={styles.audioCard}>
             <View style={styles.audioInfo}>
@@ -289,7 +457,6 @@ const HomeScreen = () => {
             <Text style={styles.title}>Welcome to LetsCalm</Text>
             <Text style={styles.subtitle}>Stops Conflict-Promotes Happiness</Text>
 
-            {/* Updated description text with box shadow */}
             <View style={styles.descriptionContainer}>
                 <Text style={styles.description}>
                     Please tap on the "Start Recording" button and observe the audio or video that is played
@@ -298,8 +465,8 @@ const HomeScreen = () => {
                 {/* Separate buttons for Start Recording and Stop Alert */}
                 <View style={styles.recordingButtons}>
                     <TouchableOpacity
-                        style={[styles.recordButton, { backgroundColor: '#D3E6F6' }]}
-                        onPress={() => setIsRecording(true)}
+                        style={[styles.recordButton, { backgroundColor: isRecording ? '#eaf3fb' : '#c0dbf2' }]}
+                        onPress={startRecording} disabled={loading || isRecording}
                     >
                         <View style={styles.buttonContent}>
                             <Icon name="microphone" size={10} color="#3caeff" style={styles.icon} />
@@ -308,14 +475,13 @@ const HomeScreen = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.recordButton, { backgroundColor: '#F6D3D3' }]}
-                        onPress={() => setIsRecording(false)}
+                        onPress={stopRecording} disabled={!isRecording}
                     >
                         <View style={styles.buttonContent}>
                             <Icon name="stop" size={10} color="#f70d1a" style={styles.icon} />
                             <Text style={styles.stopbuttonText}>Stop Alert</Text>
                         </View>
                     </TouchableOpacity>
-
                 </View>
             </View>
             <Text style={styles.sectionTitle}>Choose your Favourite Audio File</Text>
@@ -334,25 +500,27 @@ const HomeScreen = () => {
                 keyExtractor={(item) => item.id}
                 style={styles.audioList}
             />
-            {videoUri && (
-                <Modal animationType="slide" transparent={false} visible={!!videoUri}>
-                    <View style={styles.videoContainer}>
+            {
+        videoUri && (
+            <Modal animationType="slide" transparent={false} visible={!!videoUri}>
+                <View style={styles.videoContainer}>
 
-                        <Video
-                            ref={videoRef}
-                            source={{ uri: videoUri }}
-                            style={styles.video}
-                            useNativeControls
-                            resizeMode="contain"
-                            shouldPlay
-                        />
-                        <TouchableOpacity style={styles.stopButton} onPress={stopVideo}>
-                            <Text style={styles.stopButtonText}>Stop Video</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Modal>
-            )}
-        </View>
+                    <Video
+                        ref={videoRef}
+                        source={{ uri: videoUri }}
+                        style={styles.video}
+                        useNativeControls
+                        resizeMode="contain"
+                        shouldPlay
+                    />
+                    <TouchableOpacity style={styles.stopButton} onPress={stopVideo}>
+                        <Text style={styles.stopButtonText}>Stop Video</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+        )
+    }
+        </View >
     );
 };
 
@@ -408,6 +576,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 5,
         marginHorizontal: 5,
+    },
+    recording: {
+        backgroundColor: '#D3E6F6',
+    },
+    notRecording: {
+        backgroundColor: '#F6D3D3',
     },
     startbuttonText: {
         color: "#3caeff",
