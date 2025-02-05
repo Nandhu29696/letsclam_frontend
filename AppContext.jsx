@@ -1,15 +1,25 @@
 // AppContext.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useState, useEffect } from 'react';
- 
+import * as SecureStore from 'expo-secure-store';
+
+// Store the API URL securely
+SecureStore.setItemAsync('API_URL', 'http://ec2-52-87-200-240.compute-1.amazonaws.com:8000');
+
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);  // Store user data here
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const apiUrl = "http://192.168.0.135:8000";
+  const [apiUrl,setAPI] = useState('')
   
+  async function getApiUrl() {
+    const apiget = await SecureStore.getItemAsync('API_URL');
+    setAPI(apiget); 
+  }
+
+
+
   // Simulate loading user data after login
   const loadUserData = async () => {
     try {
@@ -25,6 +35,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     loadUserData();
+    getApiUrl();
   }, []);
 
   return (

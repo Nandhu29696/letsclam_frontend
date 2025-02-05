@@ -1,4 +1,4 @@
-import { FontAwesome } from '@expo/vector-icons'; // Import icon library
+import { AntDesign, FontAwesome } from '@expo/vector-icons'; // Import icon library
 import { Video } from 'expo-av'; // Import Video from expo-av
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -7,6 +7,7 @@ import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, 
 import { LinearProgress, Switch } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
+import Toast from 'react-native-toast-message';
 
 const VideoUpload = () => {
     const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
@@ -16,19 +17,29 @@ const VideoUpload = () => {
     const [file, setFile] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [videoFiles, setVideoFiles] = useState([]);
-    const [editingAudioId, setEditingAudioId] = useState(null);
+    const [editingVideoId, setEditingVideoId] = useState(null);
     const [videoUri, setVideoUri] = useState(null);
     const [playingVideoId, setPlayingVideoId] = useState(null);
     const videoRef = useRef(null);
     const [loading, setLoading] = useState(false); // State for loading indicator
     const [isGeneric, setIsGeneric] = useState(false);
-
-
+   
     const fetchVideoFiles = async () => {
         try {
-            const response = await fetch(`${apiUrl}/video_files/${user.id}`);
-            const data = await response.json();
-            setVideoFiles(data.videoFiles);
+            const response = await fetch(`${apiUrl}/api/voice/video/all/${user.userID}`,{
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                } 
+            });
+            if(response.ok){
+                const data = await response.json();
+                setVideoFiles(data);
+            }else{
+                setVideoFiles([])
+            }
+
         } catch (error) {
             console.error('Error fetching videos:', error);
         }
@@ -51,17 +62,17 @@ const VideoUpload = () => {
             console.error('Error picking file:', error);
         }
     };
+    
     function getFileExtension(filename) {
         const parts = filename.split('.');
         return parts.length > 1 ? parts.pop() : '';
     }
+    
     const uploadFile = async () => {
-
         if (!file || !title || !description) {
             Alert.alert('Error', 'Please fill in all fields and select a file.');
             return;
         }
-
         const formData = new FormData();
         formData.append('file', {
             uri: file.uri,
@@ -71,8 +82,7 @@ const VideoUpload = () => {
         formData.append('title', title);
         formData.append('description', description);
         formData.append("is_generic", isGeneric);
-        formData.append("audio_type", getFileExtension(file.name));
-        formData.append('user_id', user.id);
+        formData.append("video_type", getFileExtension(file.name));
         const requestOptions = {
             method: 'POST',
             headers: {
@@ -101,13 +111,15 @@ const VideoUpload = () => {
     const playVideo = async (videoPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-video.mp4`;
         setLoading(true);
-        const payload = {
-            filePath: videoPath,
+
+        let payload = {
+            file_path: `video/${videoPath}`,
         };
         const requestOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(payload),
         };
@@ -116,7 +128,7 @@ const VideoUpload = () => {
             if (fileInfo.exists) {
                 await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
             }
-            const response = await fetch(`${apiUrl}/play_video`, requestOptions);
+            const response = await fetch(`${apiUrl}/api/voice/video/play`, requestOptions);
             if (response.ok) {
                 const blob = await response.blob();
                 const fileReader = new FileReader();
@@ -159,21 +171,46 @@ const VideoUpload = () => {
         };
     }, []);
 
+    const getFileNameFromUrl = (url) => {
+        return url.substring(url.lastIndexOf('/') + 1);
+    };
+    const getMimeTypeFromUrl = (url) => {
+        const extension = url.substring(url.lastIndexOf('.') + 1).toLowerCase();
+        const mimeTypes = {
+            mp3: 'audio/mpeg',
+            wav: 'audio/wav',
+            m4a: 'audio/mp4',
+        };
+        return mimeTypes[extension] || 'application/octet-stream';
+    };
+    const handleEdit = (video) => {
+        setEditingVideoId(video.id);
+        setTitle(video.title);
+        setDescription(video.description);
+        setIsGeneric(video.is_generic)
+        setFile({
+            uri: video.file_url,
+            name: getFileNameFromUrl(video.file_url), 
+            type: getMimeTypeFromUrl(video.file_url),  
+        });
+        setModalVisible(true);
+    };
+
     const renderVideoItem = ({ item }) => (
         <View style={styles.tableRow}>
             <Text style={[styles.cell, styles.titleCell]}>{item.title}</Text>
             <Text style={[styles.cell, styles.descriptionCell]}>{item.description}</Text>
             <View style={styles.actionsCell}>
-                {/* <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
+                <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
                     <AntDesign name="edit" size={15} color="#007bff" />
-                </TouchableOpacity> */}
+                </TouchableOpacity>
                 {playingVideoId === item.id ? (
                     <TouchableOpacity onPress={() => stopVideo()} style={styles.actionButton}>
                         <Icon name="stop" size={15} color="red" />
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
-                        onPress={() => playVideo(item.fileName, item.id)}
+                        onPress={() => playVideo(item.file_name, item.id)}
                         style={styles.actionButton}
                     >
                         <Icon name="play-circle-outline" size={15} color="green" />
@@ -186,7 +223,7 @@ const VideoUpload = () => {
     return (
         <View style={styles.container}>
             <View style={styles.subContainer}>
-                <Text style={styles.title}>Uploaded Video Files</Text>
+                <Text style={styles.title}>Manage Video Files</Text>
                 <TouchableOpacity
                     style={styles.createButton}
                     onPress={() => {
@@ -255,7 +292,7 @@ const VideoUpload = () => {
                         <View style={styles.btnContainer}>
                             <TouchableOpacity style={styles.button} onPress={uploadFile}>
                                 <Text style={styles.buttonText}>
-                                    {editingAudioId ? 'Update' : 'Upload'}
+                                    {editingVideoId ? 'Update' : 'Upload'}
                                 </Text>
                             </TouchableOpacity>
 

@@ -4,7 +4,7 @@ import { Audio } from 'expo-av';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { AppContext } from '../../AppContext';
 
-const ContinuousRecordingScreen = () => {
+const VoiceRecordingScreen = () => {
     const [recording, setRecording] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -143,7 +143,7 @@ const ContinuousRecordingScreen = () => {
                 name: `audio-${Date.now()}.wav`,
                 type: 'audio/wav',
             });
-            // const response = await fetch('http://192.168.0.135:8000/api/voice/transcribe', {
+            // const response = await fetch(`${apiUrl}/api/voice/transcribe`, {
             //     method: 'POST',
             //     headers: {
             //         'Content-Type': 'multipart/form-data',
@@ -214,4 +214,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ContinuousRecordingScreen;
+export default VoiceRecordingScreen;

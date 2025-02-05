@@ -95,7 +95,6 @@ const AudioUpload = () => {
             const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
             if (response.ok) {
                 const data = await response.json();
-                console.log('data', data);
                 setModalVisible(false);
                 Toast.show({
                     text1: 'File uploaded successfully!',
@@ -251,7 +250,7 @@ const AudioUpload = () => {
     return (
         <View style={styles.container}>
             <View style={styles.subContainer}>
-                <Text style={styles.title}>Uploaded Audio Files</Text>
+                <Text style={styles.title}>Manage Audio Files</Text>
                 <TouchableOpacity
                     style={styles.createButton}
                     onPress={() => {

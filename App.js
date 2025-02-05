@@ -15,6 +15,7 @@ import Toast from 'react-native-toast-message';
 import VideoUpload from './components/profile/audioUpload/VideoUpload'; 
 import VideoScreen from './components/home/VideoScreen';
 import VoiceRecordingScreen from './components/recordaudio/VoiceRecordingScreen'
+import ProfileScreen from './components/profile/ProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -45,7 +46,7 @@ const App = () => {
           <Stack.Screen name="AudioUpload" component={AudioUpload} />
           <Stack.Screen name="VideoUpload" component={VideoUpload} />
           <Stack.Screen name="VideoScreen" component={VideoScreen} />
-          <Stack.Screen name="VoiceRecordingScreen" component={VoiceRecordingScreen} />
+          <Stack.Screen name="My Profile" component={ProfileScreen} />
         </Stack.Navigator>
         <Toast/>
       </NavigationContainer>

@@ -48,9 +48,9 @@ const MainLayout = ({ children, navigation }) => {
   const menuOptions = [
     { title: 'Home', icon: 'home-outline', screen: 'Home' },
     { title: 'About App', icon: 'information-circle-outline', screen: 'About' },
-    { title: 'Upload Audio', icon: 'musical-notes', screen: 'AudioUpload' },
-    { title: 'Upload Video', icon: 'videocam', screen: 'VideoUpload' },
-    { title: 'Record', icon: 'musical-notes', screen: 'VoiceRecordingScreen' },
+    // { title: 'Upload Audio', icon: 'musical-notes', screen: 'AudioUpload' },
+    // { title: 'Upload Video', icon: 'videocam', screen: 'VideoUpload' },
+    { title: 'Profile', icon: 'person', screen: 'My Profile' },
     { title: 'Logout', icon: 'log-out-outline', screen: 'Logout' }
   ];
 

@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Audio, Video } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { AppContext } from '../../AppContext';
@@ -58,6 +58,7 @@ const HomeScreen = () => {
             if (granted) {
                 await startRecording();
             } else {
+                console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
         };
@@ -73,7 +74,6 @@ const HomeScreen = () => {
             try {
                 await recording.stopAndUnloadAsync();
             } catch (error) {
-                console.error('Error during cleanup:', error);
             }
         }
         clearInterval(intervalId);
@@ -85,7 +85,6 @@ const HomeScreen = () => {
             text1: 'Starts Recording..',
             type: 'success',
         });
-
         try {
             const { granted } = await Audio.requestPermissionsAsync();
             if (!granted) {
@@ -102,7 +101,6 @@ const HomeScreen = () => {
             }, 60000);
             setIntervalId(id);
         } catch (error) {
-            console.error('Error starting recording:', error);
             setIsRecording(false);
         }
     };
@@ -114,8 +112,15 @@ const HomeScreen = () => {
             if (recording) {
                 await recording.stopAndUnloadAsync();
                 const uri = recording.getURI();
-                console.log('Final recording saved at:', uri);
-                await transcribeAudio(uri);
+                if (!uri) {
+                    const audioBuffer = await currentRecording.getAudioData();
+                    uri = URL.createObjectURL(new Blob([audioBuffer], { type: 'audio/wav' }));
+                    console.log('URI is null. Creating blob from audio data...', uri);
+                    await transcribeAudio(uri);
+                } else {
+                    console.log('Recording saved at:', uri);
+                    await transcribeAudio(uri);
+                }
                 setRecording(null);
                 Toast.show({
                     text1: 'Recording Stopped..',
@@ -135,8 +140,22 @@ const HomeScreen = () => {
                 if (status.isRecording) {
                     await currentRecording.stopAndUnloadAsync();
                     const uri = currentRecording.getURI();
-                    console.log('Recording saved at:', uri);
-                    await transcribeAudio(uri);
+                    if (!uri) {
+                        console.log('URI is null or undefined. Creating Blob from audio data...');
+                        const audioUri = await currentRecording.getURI();
+                        console.log('audioUri', audioUri);
+
+                        if (audioUri) {
+                            const response = await fetch(audioUri);
+                            const audioBlob = await response.blob();
+                            uri = await uploadBlobToStorage(audioBlob);
+                            console.log('Audio uploaded, URI:', uri);
+                            await transcribeAudio(uri);
+                        }
+                    } else {
+                        console.log('Recording saved at:', uri);
+                        await transcribeAudio(uri);
+                    }
                 }
                 setRecording(null);
                 if (intervalId) {
@@ -161,6 +180,21 @@ const HomeScreen = () => {
         }
     };
 
+    const uploadBlobToStorage = async (blob) => {
+        try {
+            // Example using Firebase Storage (you can replace this with your own blob storage method)
+            const storageRef = firebase.storage().ref();
+            const blobRef = storageRef.child('audio_files/' + new Date().getTime() + '.wav');
+
+            await blobRef.put(blob);
+            const downloadURL = await blobRef.getDownloadURL();
+            return downloadURL;  // This is the URI of the uploaded audio file
+        } catch (error) {
+            console.error('Error uploading blob to storage:', error);
+            throw new Error('Failed to upload audio to blob storage');
+        }
+    };
+
     const transcribeAudio = async (uri) => {
         try {
             setLoading(true);
@@ -170,32 +204,29 @@ const HomeScreen = () => {
                 name: `audio-${Date.now()}.wav`,
                 type: 'audio/wav',
             });
-            // const response = await fetch(`${apiUrl}/api/voice/transcribe`, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'multipart/form-data',
-            //         "Authorization": `Bearer ${token}`
-            //     },
-            //     body: formData,
-            // });
-            // if (response.ok) {
-            //     const data = await response.json();
-            //     handleApiResponse(data);
-            // }
+            const response = await fetch(`${apiUrl}/api/voice/transcribe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    "Authorization": `Bearer ${token}`
+                },
+                body: formData,
+            });
+            if (response.ok) {
+                const res = await response.json();
+                const audioData = res.data;
+                console.log('audioData', audioData);
+
+                if (audioData !== undefined && audioData.length > 0) {
+                    const { file_name, id } = audioData[0];
+                    playSound(file_name, id);
+                } else { }
+            }
         } catch (error) {
-            console.error('Error uploading file:', error.message);
+            // console.error('Error uploading file:', error.message);
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleApiResponse = (response) => {
-        const audioData = response.data;
-        if (audioData.length > 0) {
-            const { file_name, id } = audioData[0];
-            console.log('audioItem:', audioData[0])
-            playSound(file_name, id);
-        };
     };
 
     const fetchAudioFiles = async () => {
@@ -220,15 +251,11 @@ const HomeScreen = () => {
         }
     };
 
-
     const playSound = async (audioPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-        console.log('audioPath', audioPath);
-
         let payload = {
             file_path: `audio/${audioPath}`,
         };
-
         const requestOptions = {
             method: 'POST',
             headers: {
@@ -324,34 +351,36 @@ const HomeScreen = () => {
         }
     };
 
-
     const fetchvideoFiles = async () => {
         try {
-            const response = await fetch(`${apiUrl}/video_files/${user.id}`)
+            const response = await fetch(`${apiUrl}/api/voice/video/all/${user.userID}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
-                setvideoFiles(data.videoFiles);
-            } else {
-                setvideoFiles([])
-            }
+                setvideoFiles(data);
+            } else { setvideoFiles([]) }
 
         } catch (error) {
-            console.error('Error fetching video files:', error);
+            console.error('Error fetching videos:', error);
         }
     };
-
-
 
     const playVideo = async (videoPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-video.mp4`;
         setLoading(true);
         const payload = {
-            filePath: videoPath,
+            file_path: `video/${videoPath}`,
         };
         const requestOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(payload),
         };
@@ -360,7 +389,7 @@ const HomeScreen = () => {
             if (fileInfo.exists) {
                 await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
             }
-            const response = await fetch(`${apiUrl}/play_video`, requestOptions);
+            const response = await fetch(`${apiUrl}/api/voice/video/play`, requestOptions);
             if (response.ok) {
                 const blob = await response.blob();
                 const fileReader = new FileReader();
@@ -391,7 +420,6 @@ const HomeScreen = () => {
         setLoading(false);
         setPlayingVideoId(null);
     };
-
 
     const renderAudioFile = ({ item }) => (
         <View style={styles.audioCard}>
@@ -434,7 +462,7 @@ const HomeScreen = () => {
             <View style={styles.audioControls}>
                 <TouchableOpacity
                     style={styles.playButton}
-                    onPress={() => playVideo(item.fileName, item.id)} >
+                    onPress={() => playVideo(item.file_name, item.id)} >
                     <Icon name="play" size={14} color={playingAudioId === item.id ? "white" : "#3caeff"} />
                     <Text style={[styles.buttonText, { color: playingAudioId === item.id ? "blue" : "#3caeff" }]}>Play</Text>
                 </TouchableOpacity>
@@ -466,7 +494,7 @@ const HomeScreen = () => {
                 <View style={styles.recordingButtons}>
                     <TouchableOpacity
                         style={[styles.recordButton, { backgroundColor: isRecording ? '#eaf3fb' : '#c0dbf2' }]}
-                        onPress={startRecording} disabled={loading || isRecording}
+                        onPress={startRecording} disabled={isRecording}
                     >
                         <View style={styles.buttonContent}>
                             <Icon name="microphone" size={10} color="#3caeff" style={styles.icon} />
@@ -501,25 +529,25 @@ const HomeScreen = () => {
                 style={styles.audioList}
             />
             {
-        videoUri && (
-            <Modal animationType="slide" transparent={false} visible={!!videoUri}>
-                <View style={styles.videoContainer}>
+                videoUri && (
+                    <Modal animationType="slide" transparent={false} visible={!!videoUri}>
+                        <View style={styles.videoContainer}>
 
-                    <Video
-                        ref={videoRef}
-                        source={{ uri: videoUri }}
-                        style={styles.video}
-                        useNativeControls
-                        resizeMode="contain"
-                        shouldPlay
-                    />
-                    <TouchableOpacity style={styles.stopButton} onPress={stopVideo}>
-                        <Text style={styles.stopButtonText}>Stop Video</Text>
-                    </TouchableOpacity>
-                </View>
-            </Modal>
-        )
-    }
+                            <Video
+                                ref={videoRef}
+                                source={{ uri: videoUri }}
+                                style={styles.video}
+                                useNativeControls
+                                resizeMode="contain"
+                                shouldPlay
+                            />
+                            <TouchableOpacity style={styles.stopButton} onPress={stopVideo}>
+                                <Text style={styles.stopButtonText}>Stop Video</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Modal>
+                )
+            }
         </View >
     );
 };

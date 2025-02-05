@@ -21,7 +21,9 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.nandhu29.DemoProject",
-      "permissions": ["INTERNET"]
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +35,8 @@
       "API_URL": "http://ec2-54-166-185-60.compute-1.amazonaws.com:8080"
     },
     "plugins": [
-      "expo-video"
+      "expo-video",
+      "expo-secure-store"
     ]
   }
 }
