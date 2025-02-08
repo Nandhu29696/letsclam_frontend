@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Audio, Video } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -28,7 +29,6 @@ const HomeScreen = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [loading, setLoading] = useState(false);
     const [intervalId, setIntervalId] = useState(null);
-    const [transcribedData, setTranscribedData] = useState(null);
 
 
     const recordingOptions = {
@@ -52,6 +52,18 @@ const HomeScreen = () => {
         },
     };
 
+    const refreshPage = () => {
+        fetchAudioFiles();
+        fetchvideoFiles();
+        console.log('Screen refreshed!');
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            refreshPage();
+        }, [])
+    );
+
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
@@ -63,6 +75,7 @@ const HomeScreen = () => {
             }
         };
         initializeRecording();
+
 
         return () => {
             cleanupRecording();
@@ -215,8 +228,6 @@ const HomeScreen = () => {
             if (response.ok) {
                 const res = await response.json();
                 const audioData = res.data;
-                console.log('audioData', audioData);
-
                 if (audioData !== undefined && audioData.length > 0) {
                     const { file_name, id } = audioData[0];
                     playSound(file_name, id);
@@ -242,7 +253,7 @@ const HomeScreen = () => {
                 const data = await response.json();
                 setaudioFiles(data);
             } else {
-                console.error('Failed to fetch audio files. Status:', response.status);
+                // console.error('Failed to fetch audio files. Status:', response.status);
                 setaudioFiles([]);
             }
 
@@ -319,10 +330,6 @@ const HomeScreen = () => {
         }
     };
 
-    useEffect(() => {
-        fetchAudioFiles();
-        fetchvideoFiles();
-    }, []);
     useEffect(() => {
         return () => {
             if (sound.current) {

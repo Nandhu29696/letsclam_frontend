@@ -10,17 +10,19 @@ const RegisterPage = ({ navigation }) => {
     const [fullname, setFullname] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { apiUrl } = useContext(AppContext); 
+    const { apiUrl } = useContext(AppContext);
 
     const handleRegister = async (event) => {
         event.preventDefault();
         let payload = {
-            fullName: fullname,
+            name: fullname,
             email: email,
-            password: password
+            password: password,
+            password2: password,
+            tc: false
         };
         try {
-            const response = await fetch(`${apiUrl}/api/auth/signup`, {
+            const response = await fetch(`${apiUrl}/api/user/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -28,6 +30,8 @@ const RegisterPage = ({ navigation }) => {
                 body: JSON.stringify(payload),
             });
             const data = await response.json();
+            console.log('data',data);
+            
             if (response.ok) {
                 Toast.show({
                     text1: data.message,

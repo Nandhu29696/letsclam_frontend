@@ -1,0 +1,20 @@
+#install node modules
+npm install
+
+#run the application
+npm start --clear-cache
+npm start
+
+
+#build apk file
+eas build --platform android --profile production
+
+
+#build issue fix
+npx expo-doctor
+npx expo install --check
+npx expo install --fix 
+
+
+npm outdated
+npm update

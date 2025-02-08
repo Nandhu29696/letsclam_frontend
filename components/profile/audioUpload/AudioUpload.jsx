@@ -9,11 +9,13 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View, ActivityIndicator
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
-import { AntDesign, FontAwesome } from '@expo/vector-icons'; // Import icon library
+import { AntDesign, FontAwesome } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system'
 import Toast from 'react-native-toast-message';
 
@@ -25,11 +27,37 @@ const AudioUpload = () => {
     const [file, setFile] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [audioFiles, setAudioFiles] = useState([]);
+    const [sentiments, setSentiments] = useState([]);
     const [editingAudioId, setEditingAudioId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const sound = React.useRef(new Audio.Sound());
     const [playingAudioId, setPlayingAudioId] = useState(null); // State to track the currently playing audio
     const [isGeneric, setIsGeneric] = useState(false);
+    const [selectedSentiment, setSelectedSentiment] = useState('happy');
+    const [loading, setLoading] = useState(true);
+
+    const fetchSentiments = async () => {
+        try {
+            const response = await fetch(`${apiUrl}/api/voice/getsentimenttypes`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+
+            if (data && Array.isArray(data)) {
+                setSentiments(data);
+            } else {
+                Alert.alert('Error', 'Invalid data format');
+            }
+        } catch (error) {
+            Alert.alert('Error', `Failed to load data: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchAudioFiles = async () => {
         const response = await fetch(`${apiUrl}/api/voice/audio/all/${user.userID}`, {
@@ -43,13 +71,14 @@ const AudioUpload = () => {
             const data = await response.json();
             setAudioFiles(data);
         } else {
-            console.error('Failed to fetch audio files. Status:', response.status);
+            // console.error('Failed to fetch audio files. Status:', response.status);
             setAudioFiles([]);
         }
     };
 
     useEffect(() => {
         fetchAudioFiles();
+        fetchSentiments();
     }, []);
 
     const selectFile = async () => {
@@ -61,7 +90,7 @@ const AudioUpload = () => {
                 setFile(result.assets[0]);
             }
         } catch (error) {
-            console.error("Error picking file:", error);
+            // console.error("Error picking file:", error);
         }
     };
     function getFileExtension(filename) {
@@ -81,6 +110,7 @@ const AudioUpload = () => {
         });
         formData.append("title", title);
         formData.append("description", description);
+        formData.append("sentiment_type", selectedSentiment);
         formData.append("is_generic", isGeneric);
         formData.append("audio_type", getFileExtension(file.name));
 
@@ -93,6 +123,8 @@ const AudioUpload = () => {
         };
         try {
             const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
+            console.log(response);
+
             if (response.ok) {
                 const data = await response.json();
                 setModalVisible(false);
@@ -106,7 +138,7 @@ const AudioUpload = () => {
             }
             fetchAudioFiles();
         } catch (error) {
-            console.error('Error uploading file:', error.message);
+            // console.error('Error uploading file:', error.message);
             Alert.alert('Error', 'Error uploading file.');
         }
     };
@@ -116,7 +148,7 @@ const AudioUpload = () => {
         console.log('audioPath', audioPath);
 
         let payload = {
-            file_path: `audio/${audioPath}`,
+            file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`,
         };
 
         const requestOptions = {
@@ -155,7 +187,7 @@ const AudioUpload = () => {
                             await sound.current.unloadAsync();
                             setIsLoaded(false);
                         } catch (err) {
-                            console.error('Error unloading sound:', err);
+                            // console.error('Error unloading sound:', err);
                         }
                     }
 
@@ -169,16 +201,16 @@ const AudioUpload = () => {
                         setIsLoaded(true);
                         setPlayingAudioId(id);
                     } catch (err) {
-                        console.error('Error playing sound:', err);
+                        // console.error('Error playing sound:', err);
                     }
                 };
 
                 fileReader.readAsDataURL(blob);
             } else {
-                console.error('Error fetching audio file:', response.status);
+                // console.error('Error fetching audio file:', response.status);
             }
         } catch (error) {
-            console.error('Error playing sound:', error);
+            // console.error('Error playing sound:', error);
         }
     };
 
@@ -195,12 +227,13 @@ const AudioUpload = () => {
             setIsLoaded(false);
             setPlayingAudioId(null); // Reset the currently playing audio ID
         } catch (error) {
-            console.error("Error stopping sound:", error);
+            // console.error("Error stopping sound:", error);
         }
     };
     const renderAudioItem = ({ item }) => (
         <View style={styles.tableRow}>
             <Text style={[styles.cell, styles.titleCell]}>{item.title}</Text>
+            <Text style={[styles.cell, styles.sentimentCell]}>{item.sentiment_type}</Text>
             <Text style={[styles.cell, styles.descriptionCell]}>{item.description}</Text>
             <View style={styles.actionsCell}>
                 <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
@@ -239,13 +272,52 @@ const AudioUpload = () => {
         setTitle(audio.title);
         setDescription(audio.description);
         setIsGeneric(audio.is_generic)
+        setSelectedSentiment(audio.sentiment_type)
         setFile({
             uri: audio.file_url,
-            name: getFileNameFromUrl(audio.file_url), 
-            type: getMimeTypeFromUrl(audio.file_url),  
+            name: getFileNameFromUrl(audio.file_url),
+            type: getMimeTypeFromUrl(audio.file_url),
         });
         setModalVisible(true);
     };
+
+    const updateAudio = async () => {
+        if (!file || !title || !description) {
+            Alert.alert('Error', 'Please fill in all fields and select a file.');
+            return;
+        }
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("description", description);
+        formData.append("sentiment_type", selectedSentiment);
+        formData.append("is_generic", isGeneric);
+
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                "Authorization": `Bearer ${token}`
+            },
+            body: formData,
+        };
+        try {
+            const response = await fetch(`${apiUrl}/api/voice/audio/edit/${editingAudioId}`, requestOptions);
+            if (response.ok) {
+                const data = await response.json();
+                setModalVisible(false);
+                Toast.show({
+                    text1: 'Audio updated successfully!',
+                    type: 'success',
+                });
+            }
+            else {
+                Alert.alert('error', 'Update failed!');
+            }
+            fetchAudioFiles();
+        } catch (error) {
+            // console.error('Error Updateing file:', error.message);
+            Alert.alert('Error', 'Error Updateing file.');
+        }
+    }
 
     return (
         <View style={styles.container}>
@@ -266,6 +338,7 @@ const AudioUpload = () => {
 
             <View style={styles.tableHeader}>
                 <Text style={[styles.headerCell, styles.titleHeader]}>Title</Text>
+                <Text style={[styles.headerCell, styles.sentimentheader]}>Sentiment type</Text>
                 <Text style={[styles.headerCell, styles.descriptionHeader]}>Description</Text>
                 <Text style={[styles.headerCell, styles.actionsHeader]}>Actions</Text>
             </View>
@@ -325,8 +398,32 @@ const AudioUpload = () => {
                                 onValueChange={setIsGeneric}
                             />
                         </View>
+                        <View style={styles.controlItem}>
+                            <Text style={styles.label}>Select Sentiment:</Text>
+                            <View style={styles.pickerWrapper}>
+                                {loading ? (
+                                    <ActivityIndicator size="small" color="#007bff" />
+                                ) : (
+                                    <Picker
+                                        selectedValue={selectedSentiment}
+                                        onValueChange={(itemValue) => setSelectedSentiment(itemValue)}
+                                        style={styles.picker}
+                                        mode="dropdown"
+                                    >
+                                        {sentiments.map((sentiment, index) => (
+                                            <Picker.Item
+                                                key={index}
+                                                label={sentiment.sentiment_type || sentiment}
+                                                value={sentiment.sentiment_type || sentiment}
+                                                style={styles.pickerValue}
+                                            />
+                                        ))}
+                                    </Picker>
+                                )}
+                            </View>
+                        </View>
                         <View style={styles.btnContainer}>
-                            <TouchableOpacity style={styles.button} onPress={uploadFile}>
+                            <TouchableOpacity style={styles.button} onPress={editingAudioId ? updateAudio : uploadFile}>
                                 <Text style={styles.buttonText}>
                                     {editingAudioId ? 'Update' : 'Upload'}
                                 </Text>
@@ -386,16 +483,29 @@ const styles = StyleSheet.create({
     },
     tableHeader: {
         flexDirection: 'row',
+        backgroundColor: '#f0f0f0',
+        paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        paddingVertical: 10,
+        borderBottomColor: '#ddd',
+    },
+    tableRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
     },
     headerCell: {
         fontWeight: 'bold',
-        fontSize: 14,
+        paddingHorizontal: 8,
+        textAlign: 'left',
+        fontSize: 12, // Reduced font size for header
     },
     titleHeader: {
         flex: 2,
+    },
+    sentimentHeader: {
+        flex: 1.5,
     },
     descriptionHeader: {
         flex: 3,
@@ -404,18 +514,16 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
-    tableRow: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
     cell: {
-        fontSize: 14,
+        paddingHorizontal: 8,
+        textAlign: 'left',
+        fontSize: 11, // Reduced font size for table data
     },
     titleCell: {
         flex: 2,
+    },
+    sentimentCell: {
+        flex: 1.5,
     },
     descriptionCell: {
         flex: 3,
@@ -423,11 +531,10 @@ const styles = StyleSheet.create({
     actionsCell: {
         flex: 1,
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        gap: 5
+        justifyContent: 'center',
     },
     actionButton: {
-        padding: 5,
+        marginHorizontal: 5,
     },
     row: {
         flexDirection: 'row',
@@ -567,6 +674,29 @@ const styles = StyleSheet.create({
         marginRight: 10,
         fontSize: 16,
     },
+    controlItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+    },
+    label: {
+        fontSize: 16,
+        color: '#333',
+    },
+    pickerWrapper: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        overflow: 'hidden',
+        width: 190,
+        justifyContent: 'center',
+    },
+    picker: {
+        width: '100%',
+    },
+    pickerValue: {
+        fontSize: 12,
+    }
 });
 
 export default AudioUpload;

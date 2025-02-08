@@ -4,18 +4,21 @@ import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
 // Store the API URL securely
-SecureStore.setItemAsync('API_URL', 'http://ec2-52-87-200-240.compute-1.amazonaws.com:8000');
+// SecureStore.setItemAsync('API_URL', 'http://ec2-54-159-231-95.compute-1.amazonaws.com:8000');
+SecureStore.setItemAsync('API_URL', 'http://192.168.0.135:8000');
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);  // Store user data here
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [apiUrl,setAPI] = useState('')
-  
+  const [apiUrl, setAPI] = useState('')
+
   async function getApiUrl() {
     const apiget = await SecureStore.getItemAsync('API_URL');
-    setAPI(apiget); 
+    console.log('apiget', apiget);
+
+    setAPI(apiget);
   }
 
 

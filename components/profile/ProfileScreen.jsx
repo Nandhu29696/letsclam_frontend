@@ -1,13 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import AudioUpload from './audioUpload/AudioUpload';
 import VideoUpload from './audioUpload/VideoUpload';
 import { AppContext } from '../../AppContext';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { MaterialIcons } from 'react-native-vector-icons'; // Import MaterialIcons
 
 const Tab = createMaterialTopTabNavigator();
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
     const userdet = {
         name: 'Nandhu',
         email: 'nandhu2@gmail.com',
@@ -57,9 +58,14 @@ const ProfileScreen = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.profileContainer}>
+            <View style={styles.historyContainer}>
+                <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('History')}>
+                    <MaterialIcons name="history" size={25} color="#007bff" />
+                </TouchableOpacity>
+            </View> 
+            <View style={styles.profileContainer}> 
                 <Image source={{ uri: userdet.profilePicture }} style={styles.profilePicture} />
-                <Text style={styles.userName}>{userdet.name}</Text>
+                <Text style={styles.userName}>{userfile ? userfile.name : userdet.name}</Text>
                 <Text style={styles.userInfo}>Email: {userfile.email}</Text>
                 <Text style={styles.userInfo}>Phone: {userdet.phone}</Text>
                 <Text style={styles.userInfo}>Country: {userdet.country}</Text>
@@ -86,7 +92,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9f9f9',
+        backgroundColor: '#ffffff',
     },
     profileContainer: {
         alignItems: 'center',
@@ -129,6 +135,24 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#ddd',
     },
+    historyContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        padding: 10,
+        paddingRight:30
+    },
+    historyButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    historyText: {
+        fontSize: 14,
+        color: '#007bff',
+        marginRight: 4,
+    },
+
 });
 
 export default ProfileScreen;

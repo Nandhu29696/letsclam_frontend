@@ -16,6 +16,7 @@ import VideoUpload from './components/profile/audioUpload/VideoUpload';
 import VideoScreen from './components/home/VideoScreen';
 import VoiceRecordingScreen from './components/recordaudio/VoiceRecordingScreen'
 import ProfileScreen from './components/profile/ProfileScreen';
+import HistoryScreen from './components/profile/HistoryScreen';
 
 const Stack = createStackNavigator();
 
@@ -47,6 +48,7 @@ const App = () => {
           <Stack.Screen name="VideoUpload" component={VideoUpload} />
           <Stack.Screen name="VideoScreen" component={VideoScreen} />
           <Stack.Screen name="My Profile" component={ProfileScreen} />
+          <Stack.Screen name="History" component={HistoryScreen} />
         </Stack.Navigator>
         <Toast/>
       </NavigationContainer>
