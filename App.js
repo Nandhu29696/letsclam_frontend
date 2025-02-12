@@ -12,15 +12,20 @@ import OnboardingScreen from './components/onboarding/OnboardingScreen';
 import AudioUpload from './components/profile/audioUpload/AudioUpload';
 import SplashScreen from './components/SplashScreen';
 import Toast from 'react-native-toast-message';
-import VideoUpload from './components/profile/audioUpload/VideoUpload'; 
+import VideoUpload from './components/profile/audioUpload/VideoUpload';
 import VideoScreen from './components/home/VideoScreen';
 import VoiceRecordingScreen from './components/recordaudio/VoiceRecordingScreen'
 import ProfileScreen from './components/profile/ProfileScreen';
 import HistoryScreen from './components/profile/HistoryScreen';
+import { Platform } from "react-native";
 
 const Stack = createStackNavigator();
-
-const App = () => {  
+if (Platform.OS === "android") {
+  // Ignore SSL in dev only
+  global.XMLHttpRequest = global.originalXMLHttpRequest || global.XMLHttpRequest;
+  global.FormData = global.originalFormData || global.FormData;
+}
+const App = () => {
 
   return (
     <AppProvider>
@@ -50,7 +55,7 @@ const App = () => {
           <Stack.Screen name="My Profile" component={ProfileScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
         </Stack.Navigator>
-        <Toast/>
+        <Toast />
       </NavigationContainer>
     </AppProvider>
   );

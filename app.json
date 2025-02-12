@@ -32,7 +32,7 @@
       "eas": {
         "projectId": "e5d56616-bc98-43a0-bd28-6d7a560a1a52"
       },
-      "API_URL": "http://ec2-54-166-185-60.compute-1.amazonaws.com:8080"
+      "API_URL": "https://54.196.65.220"
     },
     "plugins": [
       "expo-video",
