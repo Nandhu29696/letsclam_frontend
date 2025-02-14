@@ -1,9 +1,11 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useCallback  } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TouchableWithoutFeedback, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { AppContext } from '../AppContext';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const MainLayout = ({ children, navigation }) => {
   const { user, setIsLoggedIn } = useContext(AppContext);
@@ -28,7 +30,14 @@ const MainLayout = ({ children, navigation }) => {
       closeSidebar();
     }
   };
-
+  useFocusEffect(
+    useCallback(() => {
+      refreshPage();
+    }, [])
+  );
+  const refreshPage = () => {
+    console.log('Screen refreshed!');
+  };
   const handleLogout = async () => {
     try {
       setIsLoggedIn(false);

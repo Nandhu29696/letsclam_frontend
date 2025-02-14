@@ -1,13 +1,14 @@
 // AppContext.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+// import * as SecureStore from 'expo-secure-store';
 
 // Store the API URL securely
 // SecureStore.setItemAsync('API_URL', 'https://54.196.65.220');
 // SecureStore.setItemAsync('API_URL', 'http://192.168.0.135:8000');
 
-const apiUrl = "https://ec2-3-85-11-119.compute-1.amazonaws.com";
+// const apiUrl = "https://ec2-54-211-181-115.compute-1.amazonaws.com";
+const apiUrl = "http://192.168.0.135:8000";
 console.log('API URL:', apiUrl);
 
 export const AppContext = createContext();

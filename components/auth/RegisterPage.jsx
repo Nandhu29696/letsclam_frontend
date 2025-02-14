@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { AppContext } from '../../AppContext';
+import axios from 'axios';
 
 const RegisterPage = ({ navigation }) => {
     const [fullname, setFullname] = useState('');
@@ -21,30 +22,26 @@ const RegisterPage = ({ navigation }) => {
             password2: password,
             tc: false
         };
-        try {
-            const response = await fetch(`${apiUrl}/api/user/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
+        await axios.post(`${apiUrl}/api/user/register`, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then((res) => {
+            const data = res.data;
+            Toast.show({
+                text1: data.message || 'Registration Successful',
+                type: 'success',
             });
-            const data = await response.json();
-            console.log('data',data);
-            
-            if (response.ok) {
-                Toast.show({
-                    text1: data.message,
-                    type: 'success',
-                });
-                navigation.navigate('Login');
+            navigation.navigate('Login');
+        }).catch((error) => {
+            const errors = error.response?.data?.error;
+            if (errors) {
+                const firstError = Object.values(errors)[0][0];
+                Toast.show({ text1: 'Registration Failed', text2: firstError, type: 'error', });
             } else {
-                Alert.alert('Error', data.message);
+                Toast.show({ text1: 'Registration Failed', text2: 'Failed to Register. Please check your network connection.', type: 'error', });
             }
-        } catch (error) {
-            console.log(error);
-            Alert.alert('Error', 'Failed to Register');
-        }
+        });
     };
 
     return (

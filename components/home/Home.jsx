@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 import { Audio, Video } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
-import { useFocusEffect } from '@react-navigation/native';
-import React, { useContext, useEffect, useRef, useState, useCallback } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -14,7 +14,6 @@ const HomeScreen = () => {
     const { user, apiUrl } = useContext(AppContext);
     const token = user.token.access;
     const sound = useRef(new Audio.Sound());
-    const [isPlaying, setIsPlaying] = useState(false);
     const [playingAudioId, setPlayingAudioId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const navigation = useNavigation();
@@ -67,16 +66,14 @@ const HomeScreen = () => {
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
-            if (granted) {
-                await startRecording();
-            } else {
+            if (!granted) {
+                //     startRecording();
+                // } else {
                 console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
         };
         initializeRecording();
-
-
         return () => {
             cleanupRecording();
         };
@@ -120,6 +117,7 @@ const HomeScreen = () => {
 
     const stopRecording = async () => {
         try {
+            Toast.show({ text1: 'Recording stopped.', type: 'info', });
             setIsRecording(false);
             clearInterval(intervalId);
             if (recording) {
@@ -209,57 +207,63 @@ const HomeScreen = () => {
     };
 
     const transcribeAudio = async (uri) => {
-        try {
-            setLoading(true);
-            const formData = new FormData();
-            formData.append('file', {
-                uri,
-                name: `audio-${Date.now()}.wav`,
-                type: 'audio/wav',
-            });
-            const response = await fetch(`${apiUrl}/api/voice/transcribe`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    "Authorization": `Bearer ${token}`
-                },
-                body: formData,
-            });
-            if (response.ok) {
-                const res = await response.json();
-                const audioData = res.data;
-                if (audioData !== undefined && audioData.length > 0) {
-                    const { file_name, id } = audioData[0];
-                    playSound(file_name, id);
-                } else { }
+        setLoading(true);
+        const formData = new FormData();
+        formData.append('file', {
+            uri,
+            name: `audio-${Date.now()}.wav`,
+            type: 'audio/wav',
+        });
+
+        await axios.post(`${apiUrl}/api/voice/transcribe`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${token}`,
+            },
+        }).then((res) => {
+            const audioData = res.data?.data;
+            if (audioData && audioData.length > 0) {
+                const { file_name, id } = audioData[0];
+                playSound(file_name, id);
+            } else {
+                Toast.show({ text1: 'No transcription data', text2: 'No audio found based on this sentiment type.', type: 'info', });
             }
-        } catch (error) {
-            // console.error('Error uploading file:', error.message);
-        } finally {
-            setLoading(false);
-        }
+        }).catch((error) => {
+            const status = error.response?.status;
+            const errorMessage = error.response?.data?.message;
+            if (status === 401) {
+                Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error', });
+                navigation.replace('Login');
+            } else if (status === 404 && errorMessage === 'No audio files found.') {
+                Toast.show({ text1: 'No Audio Found', text2: 'No audio files were found for transcription.', type: 'info', });
+            } else {
+                Toast.show({ text1: 'Error', text2: 'Failed to transcribe audio. Please try again later.', type: 'error' });
+            }
+        })
+            .finally(() => {
+                setLoading(false);
+            });
     };
 
     const fetchAudioFiles = async () => {
-        try {
-            const response = await fetch(`${apiUrl}/api/voice/audio/all/${user.userID}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setaudioFiles(data);
+        await axios.get(`${apiUrl}/api/voice/audio/all/${user.userID}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+        }).then((res) => {
+            const data = res.data;
+            setaudioFiles(data);
+        }).catch((error) => {
+            const status = error.response?.status;
+            if (status === 401) {
+                Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
+                navigation.replace('Login');
             } else {
-                // console.error('Failed to fetch audio files. Status:', response.status);
+                Toast.show({ text1: 'Error', text2: 'Failed to fetch audio files. Please try again later.', type: 'error' });
                 setaudioFiles([]);
             }
-
-        } catch (error) {
-            console.error('Error fetching audio files:', error);
-        }
+        });
     };
 
     const playSound = async (audioPath, id) => {
@@ -345,7 +349,6 @@ const HomeScreen = () => {
         };
     }, []);
 
-
     const stopSound = async () => {
         try {
             if (isLoaded) {
@@ -359,22 +362,24 @@ const HomeScreen = () => {
     };
 
     const fetchvideoFiles = async () => {
-        try {
-            const response = await fetch(`${apiUrl}/api/voice/video/all/${user.userID}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setvideoFiles(data);
-            } else { setvideoFiles([]) }
-
-        } catch (error) {
-            console.error('Error fetching videos:', error);
-        }
+        await axios.get(`${apiUrl}/api/voice/video/all/${user.userID}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+        }).then((res) => {
+            const data = res.data;
+            setvideoFiles(data);
+        }).catch((error) => {
+            const status = error.response?.status;
+            if (status === 401) {
+                Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
+                navigation.replace('Login');
+            } else {
+                Toast.show({ text1: 'Error', text2: 'Failed to fetch video files. Please try again later.', type: 'error' });
+                setvideoFiles([]);
+            }
+        });
     };
 
     const playVideo = async (videoPath, id) => {
@@ -497,12 +502,10 @@ const HomeScreen = () => {
                     Please tap on the "Start Recording" button and observe the audio or video that is played
                     when the voice volume reaches its peak.
                 </Text>
-                {/* Separate buttons for Start Recording and Stop Alert */}
                 <View style={styles.recordingButtons}>
                     <TouchableOpacity
                         style={[styles.recordButton, { backgroundColor: isRecording ? '#eaf3fb' : '#c0dbf2' }]}
-                        onPress={startRecording} disabled={isRecording}
-                    >
+                        onPress={startRecording} disabled={isRecording}>
                         <View style={styles.buttonContent}>
                             <Icon name="microphone" size={10} color="#3caeff" style={styles.icon} />
                             <Text style={styles.startbuttonText}>Start Recording</Text>
@@ -510,8 +513,7 @@ const HomeScreen = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.recordButton, { backgroundColor: '#F6D3D3' }]}
-                        onPress={stopRecording} disabled={!isRecording}
-                    >
+                        onPress={stopRecording} disabled={!isRecording}>
                         <View style={styles.buttonContent}>
                             <Icon name="stop" size={10} color="#f70d1a" style={styles.icon} />
                             <Text style={styles.stopbuttonText}>Stop Alert</Text>
@@ -519,22 +521,20 @@ const HomeScreen = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            <Text style={styles.sectionTitle}>Choose your Favourite Audio File</Text>
 
+            <Text style={styles.sectionTitle}>Choose your Favourite Audio File</Text>
             <FlatList
                 data={audioFiles}
                 renderItem={renderAudioFile}
                 keyExtractor={(item) => item.id}
-                style={styles.audioList}
-            />
+                style={styles.audioList} />
 
             <Text style={styles.sectionTitle}>Choose Your Favorite Video File</Text>
             <FlatList
                 data={videoFiles}
                 renderItem={renderVideoFile}
                 keyExtractor={(item) => item.id}
-                style={styles.audioList}
-            />
+                style={styles.audioList} />
             {
                 videoUri && (
                     <Modal animationType="slide" transparent={false} visible={!!videoUri}>

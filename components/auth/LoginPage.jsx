@@ -6,46 +6,41 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { AppContext } from '../../AppContext';
+import axios from 'axios';
 
 const LoginPage = ({ navigation }) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { setUser, setIsLoggedIn, apiUrl } = useContext(AppContext);
-     
+
     const handleLoginPage = async (event) => {
         event.preventDefault();
         let loginData = {
             email: email,
             password: password,
         };
-        try {
-            const response = await fetch(`${apiUrl}/api/user/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(loginData),
+        await axios.post(`${apiUrl}/api/user/login`, loginData, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then(async (res) => {
+            const data = res.data;
+            Toast.show({ text1: 'Login Successful', text2: 'Welcome back!', type: 'success' });
+            await AsyncStorage.setItem('userProfile', JSON.stringify(data));
+            setUser(data);
+            setIsLoggedIn(true);
+            navigation.replace('Home');
+        })
+            .catch((error) => {
+                const errors = error.response?.data?.errors;
+                if (errors) {
+                    const firstError = errors.non_field_error ? errors.non_field_error[0] : 'An unknown error occurred.';
+                    Toast.show({ text1: 'Login Failed', text2: firstError, type: 'error' });
+                } else {
+                    Toast.show({ text1: 'Error', text2: 'Failed to Login. Please check your network connection.', type: 'error' });
+                }
             });
-            
-            const data = await response.json();
-            if (response.ok) {
-                Toast.show({
-                    text1: 'Login Successful',
-                    text2: 'Welcome back!',
-                    type: 'success',
-                });
-                await AsyncStorage.setItem('userProfile', JSON.stringify(data));
-                setUser(data);
-                setIsLoggedIn(true);
-                navigation.replace('Home');
-            } else {
-                Alert.alert('Error', data.message);
-            }
-        } catch (error) {
-            console.log(error.message);
-            Alert.alert('Failed to Login: ', apiUrl);
-        }
     };
 
     return (

@@ -5,6 +5,8 @@ node_modules/
 package-lock.json 
 yarn.lock
 
+android
+
 # Expo
 .expo/
 dist/

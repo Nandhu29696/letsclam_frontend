@@ -14,7 +14,6 @@ import SplashScreen from './components/SplashScreen';
 import Toast from 'react-native-toast-message';
 import VideoUpload from './components/profile/audioUpload/VideoUpload';
 import VideoScreen from './components/home/VideoScreen';
-import VoiceRecordingScreen from './components/recordaudio/VoiceRecordingScreen'
 import ProfileScreen from './components/profile/ProfileScreen';
 import HistoryScreen from './components/profile/HistoryScreen';
 import { Platform } from "react-native";
