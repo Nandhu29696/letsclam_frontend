@@ -2,7 +2,7 @@ import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import React, { useContext, useEffect, useState } from 'react';
 import {
-    Alert, Switch,
+    Alert, Switch, Platform,
     FlatList,
     Modal,
     StyleSheet,
@@ -102,12 +102,21 @@ const AudioUpload = () => {
             Alert.alert('Error', 'Please fill in all fields and select a file.');
             return;
         }
+
         const formData = new FormData();
-        formData.append("file", {
-            uri: file.uri,
-            name: file.name,
-            type: file.mimeType,
-        });
+
+        if (Platform.OS === 'web') {
+            const response = await fetch(file.uri);
+            const blob = await response.blob(); // Convert URI to Blob
+            formData.append("file", blob, file.name);
+        } else {
+            // 📱 React Native: Use uri-based file object
+            formData.append("file", {
+                uri: file.uri,
+                name: file.name,
+                type: file.mimeType,
+            });
+        }
         formData.append("title", title);
         formData.append("description", description);
         formData.append("sentiment_type", selectedSentiment);
@@ -117,10 +126,12 @@ const AudioUpload = () => {
         const requestOptions = {
             method: 'POST',
             headers: {
-                "Authorization": `Bearer ${token}`
+                "Authorization": `Bearer ${token}`,
+                ...(Platform.OS === 'web' ? {} : { "Content-Type": "multipart/form-data" }) // Web handles `Content-Type` automatically
             },
             body: formData,
         };
+
         try {
             const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
             console.log(response);
@@ -132,14 +143,14 @@ const AudioUpload = () => {
                     text1: 'File uploaded successfully!',
                     type: 'success',
                 });
+            } else {
+                Alert.alert('Error', 'File upload failed!');
             }
-            else {
-                Alert.alert('error', 'File upload failed!');
-            }
+
             fetchAudioFiles();
         } catch (error) {
-            // console.error('Error uploading file:', error.message);
             Alert.alert('Error', 'Error uploading file.');
+            console.error('Error uploading file:', error);
         }
     };
 

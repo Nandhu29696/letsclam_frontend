@@ -8,7 +8,7 @@ import React, { createContext, useState, useEffect } from 'react';
 // SecureStore.setItemAsync('API_URL', 'http://192.168.0.135:8000');
 
 // const apiUrl = "https://ec2-54-211-181-115.compute-1.amazonaws.com";
-const apiUrl = "http://localhost:8000";
+const apiUrl = "http://192.168.0.135:8000";
 console.log('API URL:', apiUrl);
 
 export const AppContext = createContext();

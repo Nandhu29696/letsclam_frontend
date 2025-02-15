@@ -288,7 +288,7 @@ const HomeScreen = () => {
 
     const playSound = async (audioPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-        const payload = { file_path: `audio/${audioPath}` };
+        const payload = {file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`, };
         const requestOptions = {
             method: 'POST',
             headers: {
