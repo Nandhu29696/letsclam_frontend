@@ -3,11 +3,14 @@ import { Video } from 'expo-av'; // Import Video from expo-av
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearProgress, Switch } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
 import Toast from 'react-native-toast-message';
+import { ActivityIndicator } from 'react-native-web';
+import { Picker } from '@react-native-picker/picker';
+
 
 const VideoUpload = () => {
     const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
@@ -23,30 +26,56 @@ const VideoUpload = () => {
     const videoRef = useRef(null);
     const [loading, setLoading] = useState(false); // State for loading indicator
     const [isGeneric, setIsGeneric] = useState(false);
-   
-    const fetchVideoFiles = async () => {
+    const [selectedSentiment, setSelectedSentiment] = useState('');
+    const [sentiments, setSentiments] = useState([]);
+
+    const fetchSentiments = async () => {
         try {
-            const response = await fetch(`${apiUrl}/api/voice/video/all/${user.userID}`,{
+            const response = await fetch(`${apiUrl}/api/voice/getsentimenttypes`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
-                } 
+                }
             });
-            if(response.ok){
+            const data = await response.json();
+
+            if (data && Array.isArray(data)) {
+                setSentiments(data);
+            } else {
+                Alert.alert('Error', 'Invalid data format');
+            }
+        } catch (error) {
+            Alert.alert('Error', `Failed to load data: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchVideoFiles = async () => {
+        try {
+            const response = await fetch(`${apiUrl}/api/voice/video/all/${user.userID}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
                 const data = await response.json();
                 setVideoFiles(data);
-            }else{
+            } else {
                 setVideoFiles([])
             }
 
         } catch (error) {
-            console.error('Error fetching videos:', error);
+            //console.error('Error fetching videos:', error);
         }
     };
 
     useEffect(() => {
         fetchVideoFiles();
+        fetchSentiments();
     }, []);
 
     const selectFile = async () => {
@@ -59,28 +88,36 @@ const VideoUpload = () => {
                 setFile(selectedFile);
             }
         } catch (error) {
-            console.error('Error picking file:', error);
+            //console.error('Error picking file:', error);
         }
     };
-    
+
     function getFileExtension(filename) {
         const parts = filename.split('.');
         return parts.length > 1 ? parts.pop() : '';
     }
-    
+
     const uploadFile = async () => {
         if (!file || !title || !description) {
             Alert.alert('Error', 'Please fill in all fields and select a file.');
             return;
         }
         const formData = new FormData();
-        formData.append('file', {
-            uri: file.uri,
-            name: file.name,
-            type: file.mimeType,
-        });
+        if (Platform.OS === 'web') {
+            const response = await fetch(file.uri);
+            const blob = await response.blob(); // Convert URI to Blob
+            formData.append("file", blob, file.name);
+        } else {
+            // 📱 React Native: Use uri-based file object
+            formData.append("file", {
+                uri: file.uri,
+                name: file.name,
+                type: file.mimeType,
+            });
+        }
         formData.append('title', title);
         formData.append('description', description);
+        formData.append("sentiment_type", selectedSentiment);
         formData.append("is_generic", isGeneric);
         formData.append("video_type", getFileExtension(file.name));
         const requestOptions = {
@@ -103,7 +140,7 @@ const VideoUpload = () => {
                 Alert.alert('Error', 'File upload failed!');
             }
         } catch (error) {
-            console.error('Error uploading file:', error);
+            //console.error('Error uploading file:', error);
             Alert.alert('Error', 'Error uploading file.');
         }
     };
@@ -113,7 +150,7 @@ const VideoUpload = () => {
         setLoading(true);
 
         let payload = {
-            file_path: `video/${videoPath}`,
+            file_path: videoPath.startsWith('video/') ? videoPath : `video/${videoPath}`,
         };
         const requestOptions = {
             method: 'POST',
@@ -137,17 +174,17 @@ const VideoUpload = () => {
                     await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
                         encoding: FileSystem.EncodingType.Base64,
                     });
-                    console.log('File saved at:', cacheFilePath);
+                    //console.log('File saved at:', cacheFilePath);
                     setVideoUri(cacheFilePath);
                     setPlayingVideoId(id);
                 };
                 fileReader.readAsDataURL(blob);
             } else {
-                console.error('Error fetching video file:', response.status);
+                //console.error('Error fetching video file:', response.status);
                 Alert.alert('Error', 'Unable to fetch video from server.');
             }
         } catch (error) {
-            console.error('Error playing video:', error);
+            //console.error('Error playing video:', error);
             Alert.alert('Error', 'An error occurred while fetching the video.');
         }
     };
@@ -187,11 +224,12 @@ const VideoUpload = () => {
         setEditingVideoId(video.id);
         setTitle(video.title);
         setDescription(video.description);
+        setSelectedSentiment(audio.sentiment_type)
         setIsGeneric(video.is_generic)
         setFile({
             uri: video.file_url,
-            name: getFileNameFromUrl(video.file_url), 
-            type: getMimeTypeFromUrl(video.file_url),  
+            name: getFileNameFromUrl(video.file_url),
+            type: getMimeTypeFromUrl(video.file_url),
         });
         setModalVisible(true);
     };
@@ -201,9 +239,9 @@ const VideoUpload = () => {
             <Text style={[styles.cell, styles.titleCell]}>{item.title}</Text>
             <Text style={[styles.cell, styles.descriptionCell]}>{item.description}</Text>
             <View style={styles.actionsCell}>
-                <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
+                {/* <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
                     <AntDesign name="edit" size={15} color="#007bff" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 {playingVideoId === item.id ? (
                     <TouchableOpacity onPress={() => stopVideo()} style={styles.actionButton}>
                         <Icon name="stop" size={15} color="red" />
@@ -242,14 +280,14 @@ const VideoUpload = () => {
                 <Text style={[styles.headerCell, styles.descriptionHeader]}>Description</Text>
                 <Text style={[styles.headerCell, styles.actionsHeader]}>Actions</Text>
             </View>
-
-            <FlatList
-                data={videoFiles}
-                renderItem={renderVideoItem}
-                keyExtractor={(item) => item.id.toString()}
-                style={styles.table}
-            />
-
+            <View style={styles.fixedListContainer}>
+                <FlatList
+                    data={videoFiles}
+                    renderItem={renderVideoItem}
+                    keyExtractor={(item) => item.id.toString()}
+                    style={styles.table}
+                />
+            </View>
             <Modal animationType="slide" transparent={true} visible={modalVisible}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalView}>
@@ -288,6 +326,30 @@ const VideoUpload = () => {
                                 value={isGeneric}
                                 onValueChange={setIsGeneric}
                             />
+                        </View>
+                        <View style={styles.controlItem}>
+                            <Text style={styles.label}>Select Sentiment:</Text>
+                            <View style={styles.pickerWrapper}>
+                                {loading ? (
+                                    <ActivityIndicator size="small" color="#007bff" />
+                                ) : (
+                                    <Picker
+                                        selectedValue={selectedSentiment}
+                                        onValueChange={(itemValue) => setSelectedSentiment(itemValue)}
+                                        style={styles.picker}
+                                        mode="dropdown"
+                                    >
+                                        {sentiments.map((sentiment, index) => (
+                                            <Picker.Item
+                                                key={index}
+                                                label={sentiment.sentiment_type || sentiment}
+                                                value={sentiment.sentiment_type || sentiment}
+                                                style={styles.pickerValue}
+                                            />
+                                        ))}
+                                    </Picker>
+                                )}
+                            </View>
                         </View>
                         <View style={styles.btnContainer}>
                             <TouchableOpacity style={styles.button} onPress={uploadFile}>
@@ -376,6 +438,14 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#ccc',
+    },
+    fixedListContainer: {
+        height: 200, // Set a fixed height for the list
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        marginBottom: 20,
+        overflow: 'hidden',
     },
     header: {
         fontWeight: 'bold',
@@ -588,7 +658,23 @@ const styles = StyleSheet.create({
     checkboxLabel: {
         marginRight: 10,
         fontSize: 16,
+    }, pickerWrapper: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        overflow: 'hidden',
+        width: 190,
+        justifyContent: 'center',
+    }, label: {
+        fontSize: 16,
+        color: '#333',
     },
+    picker: {
+        width: '100%',
+    },
+    pickerValue: {
+        fontSize: 12,
+    }
 });
 
 export default VideoUpload;

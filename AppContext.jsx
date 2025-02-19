@@ -7,9 +7,9 @@ import React, { createContext, useState, useEffect } from 'react';
 // SecureStore.setItemAsync('API_URL', 'https://54.196.65.220');
 // SecureStore.setItemAsync('API_URL', 'http://192.168.0.135:8000');
 
-// const apiUrl = "https://ec2-54-211-181-115.compute-1.amazonaws.com";
-const apiUrl = "http://192.168.0.135:8000";
-console.log('API URL:', apiUrl);
+const apiUrl = "http://ec2-54-198-16-236.compute-1.amazonaws.com:8000";
+// const apiUrl = "http://192.168.0.135:8000";
+//console.log('API URL:', apiUrl);
 
 export const AppContext = createContext();
 
@@ -20,7 +20,7 @@ export const AppProvider = ({ children }) => {
 
   // async function getApiUrl() {
   //   const apiget = await SecureStore.getItemAsync('API_URL');
-  //   console.log('apiget', apiget);
+  //   //console.log('apiget', apiget);
 
   //   setAPI(apiget);
   // }
@@ -34,7 +34,7 @@ export const AppProvider = ({ children }) => {
         setIsLoggedIn(true);
       }
     } catch (error) {
-      console.error('Failed to load user data:', error);
+      //console.error('Failed to load user data:', error);
     }
   };
 

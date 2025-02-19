@@ -16,7 +16,7 @@ const SplashScreen = ({ navigation }) => {
           navigation.replace('Onboarding');
         }
       } catch (error) {
-        console.error('Error checking login status:', error);
+        //console.error('Error checking login status:', error);
         navigation.replace('Onboarding');
       }
     };

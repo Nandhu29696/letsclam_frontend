@@ -36,7 +36,7 @@ const MainLayout = ({ children, navigation }) => {
     }, [])
   );
   const refreshPage = () => {
-    console.log('Screen refreshed!');
+    //console.log('Screen refreshed!');
   };
   const handleLogout = async () => {
     try {
@@ -50,7 +50,7 @@ const MainLayout = ({ children, navigation }) => {
       setModalVisible(false);
       navigation.replace('Login');
     } catch (error) {
-      console.error('Error during logout:', error);
+      //console.error('Error during logout:', error);
     }
   };
 

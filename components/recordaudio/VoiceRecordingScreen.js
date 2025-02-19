@@ -54,7 +54,7 @@
 //             try {
 //                 await recording.stopAndUnloadAsync();
 //             } catch (error) {
-//                 console.error('Error during cleanup:', error);
+//                 //console.error('Error during cleanup:', error);
 //             }
 //         }
 //         clearInterval(intervalId);
@@ -73,12 +73,12 @@
 //             const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
 //             setRecording(newRecording);
 //             const id = setInterval(async () => {
-//                 console.log('1-minute interval reached. Stopping recording...');
+//                 //console.log('1-minute interval reached. Stopping recording...');
 //                 await handlePauseAndSave(newRecording);
 //             }, 60000);
 //             setIntervalId(id);
 //         } catch (error) {
-//             console.error('Error starting recording:', error);
+//             //console.error('Error starting recording:', error);
 //             setIsRecording(false);
 //         }
 //     };
@@ -90,24 +90,24 @@
 //             if (recording) {
 //                 await recording.stopAndUnloadAsync();
 //                 const uri = recording.getURI();
-//                 console.log('Final recording saved at:', uri);
+//                 //console.log('Final recording saved at:', uri);
 //                 await transcribeAudio(uri);
 //                 setRecording(null);
 //             }
 //         } catch (error) {
-//             console.error('Error stopping recording:', error);
+//             //console.error('Error stopping recording:', error);
 //         }
 //     };
 
 //     const handlePauseAndSave = async (currentRecording) => {
 //         try {
 //             if (currentRecording) {
-//                 console.log('Pausing and saving the current recording...');
+//                 //console.log('Pausing and saving the current recording...');
 //                 const status = await currentRecording.getStatusAsync();
 //                 if (status.isRecording) {
 //                     await currentRecording.stopAndUnloadAsync();
 //                     const uri = currentRecording.getURI();
-//                     console.log('Recording saved at:', uri);
+//                     //console.log('Recording saved at:', uri);
 //                     await transcribeAudio(uri);
 //                 }
 //                 setRecording(null);
@@ -116,20 +116,20 @@
 //                     setIntervalId(null);
 //                 }
 //                 setTimeout(async () => {
-//                     console.log('Starting a new recording...');
+//                     //console.log('Starting a new recording...');
 //                     const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
 //                     setRecording(newRecording);
 //                     const newIntervalId = setInterval(async () => {
-//                         console.log('1-minute interval reached. Stopping recording...');
+//                         //console.log('1-minute interval reached. Stopping recording...');
 //                         handlePauseAndSave(newRecording);
 //                     }, 60000);
 //                     setIntervalId(newIntervalId);
 //                 }, 500);
 //             } else {
-//                 console.log('No recording to pause and save.');
+//                 //console.log('No recording to pause and save.');
 //             }
 //         } catch (error) {
-//             console.error('Error during pause and save:', error);
+//             //console.error('Error during pause and save:', error);
 //         }
 //     };
 
@@ -152,9 +152,9 @@
 //             //     body: formData,
 //             // });
 //             // const data = await response.json();
-//             // console.log('API Response:', data);
+//             // //console.log('API Response:', data);
 //         } catch (error) {
-//             console.error('Error uploading file:', error.message);
+//             //console.error('Error uploading file:', error.message);
 //         } finally {
 //             setLoading(false);
 //         }

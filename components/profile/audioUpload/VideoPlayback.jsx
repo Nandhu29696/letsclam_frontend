@@ -43,7 +43,7 @@ const VideoPlayback = ({ apiUrl, videoPath }) => {
                         encoding: FileSystem.EncodingType.Base64,
                     });
 
-                    console.log('File saved at:', cacheFilePath);
+                    //console.log('File saved at:', cacheFilePath);
 
                     // Set the video URI and play the video
                     setVideoUri(cacheFilePath);
@@ -52,11 +52,11 @@ const VideoPlayback = ({ apiUrl, videoPath }) => {
 
                 fileReader.readAsDataURL(blob);
             } else {
-                console.error('Error fetching video file:', response.status);
+                //console.error('Error fetching video file:', response.status);
                 Alert.alert('Error', 'Unable to fetch video from server.');
             }
         } catch (error) {
-            console.error('Error playing video:', error);
+            //console.error('Error playing video:', error);
             Alert.alert('Error', 'An error occurred while fetching the video.');
         }
     };
@@ -73,7 +73,7 @@ const VideoPlayback = ({ apiUrl, videoPath }) => {
         return () => {
             if (videoRef.current) {
                 videoRef.current.unloadAsync().catch((err) =>
-                    console.error('Error unloading video on unmount:', err)
+                    //console.error('Error unloading video on unmount:', err)
                 );
             }
         };

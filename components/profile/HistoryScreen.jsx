@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, Platform } from 'react-native';
 import { AppContext } from '../../AppContext';
 import DateFormatter from '../utils/DateFormatter';
 
@@ -30,7 +30,6 @@ const HistoryScreen = () => {
                 Alert.alert('Error', data.message || 'Failed to load data');
             }
         } catch (error) {
-            console.error('Error fetching sentiment data:', error);
             Alert.alert('Network Error', 'Unable to fetch history.');
         } finally {
             setLoading(false);
@@ -63,12 +62,15 @@ const HistoryScreen = () => {
             {loading ? (
                 <ActivityIndicator size="large" color="#007bff" />
             ) : (
-                <FlatList
-                    data={historyData}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.listContainer}
-                />
+                <View style={Platform.OS === 'web' ? styles.scrollContainer : styles.fixedListContainer}>
+                    <FlatList
+                        data={historyData}
+                        keyExtractor={(item) => item.id.toString()}
+                        renderItem={renderItem}
+                        contentContainerStyle={styles.listContainer}
+                        nestedScrollEnabled={true} // Enables inner scrolling if needed
+                    />
+                </View>
             )}
         </View>
     );
@@ -105,6 +107,21 @@ const styles = StyleSheet.create({
     fieldValue: {
         fontSize: 11,
         color: '#555',
+    },
+
+    // 📌 Web-specific scroll container
+    scrollContainer: {
+        height: 550, // Set fixed height for Web
+        overflowY: 'auto', // Enable vertical scrollbar
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        padding: 8,
+    },
+
+    // 📌 Mobile (default behavior)
+    fixedListContainer: {
+        flex: 1, // Allow default scrolling
     },
 });
 

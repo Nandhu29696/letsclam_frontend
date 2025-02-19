@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Audio, Video } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { AppContext } from '../../AppContext';
@@ -55,7 +55,7 @@ const HomeScreen = () => {
     const refreshPage = () => {
         fetchAudioFiles();
         fetchvideoFiles();
-        console.log('Screen refreshed!');
+        //console.log('Screen refreshed!');
     };
 
     useFocusEffect(
@@ -70,7 +70,7 @@ const HomeScreen = () => {
             if (!granted) {
                 //     startRecording();
                 // } else {
-                console.log('Permission required. Microphone permission is required.');
+                //console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
         };
@@ -107,7 +107,7 @@ const HomeScreen = () => {
             const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
             setRecording(newRecording);
             const id = setInterval(async () => {
-                console.log('1-minute interval reached. Stopping recording...');
+                //console.log('1-minute interval reached. Stopping recording...');
                 await handlePauseAndSave(newRecording);
             }, 60000);
             setIntervalId(id);
@@ -127,10 +127,10 @@ const HomeScreen = () => {
                 if (!uri) {
                     const audioBuffer = await currentRecording.getAudioData();
                     uri = URL.createObjectURL(new Blob([audioBuffer], { type: 'audio/wav' }));
-                    console.log('URI is null. Creating blob from audio data...', uri);
+                    //console.log('URI is null. Creating blob from audio data...', uri);
                     await transcribeAudio(uri);
                 } else {
-                    console.log('Recording saved at:', uri);
+                    //console.log('Recording saved at:', uri);
                     await transcribeAudio(uri);
                 }
                 setRecording(null);
@@ -140,32 +140,32 @@ const HomeScreen = () => {
                 });
             }
         } catch (error) {
-            console.error('Error stopping recording:', error);
+            //console.error('Error stopping recording:', error);
         }
     };
 
     const handlePauseAndSave = async (currentRecording) => {
         try {
             if (currentRecording) {
-                console.log('Pausing and saving the current recording...');
+                //console.log('Pausing and saving the current recording...');
                 const status = await currentRecording.getStatusAsync();
                 if (status.isRecording) {
                     await currentRecording.stopAndUnloadAsync();
                     const uri = currentRecording.getURI();
                     if (!uri) {
-                        console.log('URI is null or undefined. Creating Blob from audio data...');
+                        //console.log('URI is null or undefined. Creating Blob from audio data...');
                         const audioUri = await currentRecording.getURI();
-                        console.log('audioUri', audioUri);
+                        //console.log('audioUri', audioUri);
 
                         if (audioUri) {
                             const response = await fetch(audioUri);
                             const audioBlob = await response.blob();
                             uri = await uploadBlobToStorage(audioBlob);
-                            console.log('Audio uploaded, URI:', uri);
+                            //console.log('Audio uploaded, URI:', uri);
                             await transcribeAudio(uri);
                         }
                     } else {
-                        console.log('Recording saved at:', uri);
+                        //console.log('Recording saved at:', uri);
                         await transcribeAudio(uri);
                     }
                 }
@@ -175,20 +175,20 @@ const HomeScreen = () => {
                     setIntervalId(null);
                 }
                 setTimeout(async () => {
-                    console.log('Starting a new recording...');
+                    //console.log('Starting a new recording...');
                     const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
                     setRecording(newRecording);
                     const newIntervalId = setInterval(async () => {
-                        console.log('1-minute interval reached. Stopping recording...');
+                        //console.log('1-minute interval reached. Stopping recording...');
                         handlePauseAndSave(newRecording);
                     }, 60000);
                     setIntervalId(newIntervalId);
                 }, 500);
             } else {
-                console.log('No recording to pause and save.');
+                //console.log('No recording to pause and save.');
             }
         } catch (error) {
-            console.error('Error during pause and save:', error);
+            //console.error('Error during pause and save:', error);
         }
     };
 
@@ -202,7 +202,7 @@ const HomeScreen = () => {
             const downloadURL = await blobRef.getDownloadURL();
             return downloadURL;  // This is the URI of the uploaded audio file
         } catch (error) {
-            console.error('Error uploading blob to storage:', error);
+            //console.error('Error uploading blob to storage:', error);
             throw new Error('Failed to upload audio to blob storage');
         }
     };
@@ -217,7 +217,7 @@ const HomeScreen = () => {
             setLoading(true);
             const formData = new FormData();
             let file;
-            console.log('Platform.OS', Platform.OS);
+            //console.log('Platform.OS', Platform.OS);
 
             if (Platform.OS === 'web') {
                 // Web: Convert Blob URL to File
@@ -288,7 +288,7 @@ const HomeScreen = () => {
 
     const playSound = async (audioPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-        const payload = {file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`, };
+        const payload = { file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`, };
         const requestOptions = {
             method: 'POST',
             headers: {
@@ -305,9 +305,9 @@ const HomeScreen = () => {
             if (Platform.OS === 'web') {
                 // 🌐 Web: Use HTML5 Audio API
                 const blob = await response.blob();
-                console.log('blob', blob);
+                //console.log('blob', blob);
                 const audioURL = URL.createObjectURL(blob);
-                console.log('audioURL ', audioURL);
+                //console.log('audioURL ', audioURL);
                 const audio = new window.Audio(audioURL);  // Ensure window.Audio is used
                 audio.load();
                 await audio.play();
@@ -333,7 +333,7 @@ const HomeScreen = () => {
                                 await sound.current.unloadAsync();
                                 setIsLoaded(false);
                             } catch (err) {
-                                console.error('Error unloading sound:', err);
+                                //console.error('Error unloading sound:', err);
                             }
                         }
 
@@ -347,17 +347,17 @@ const HomeScreen = () => {
                             setIsLoaded(true);
                             setPlayingAudioId(id);
                         } catch (err) {
-                            console.error('Error playing sound:', err);
+                            //console.error('Error playing sound:', err);
                         }
                     };
 
                     fileReader.readAsDataURL(blob);
                 } else {
-                    console.error('Error fetching audio file:', response.status);
+                    //console.error('Error fetching audio file:', response.status);
                 }
             }
         } catch (error) {
-            console.error('Error playing sound:', error);
+            //console.error('Error playing sound:', error);
         }
     };
     useEffect(() => {
@@ -384,7 +384,7 @@ const HomeScreen = () => {
                 setIsLoaded(false);
             }
         } catch (error) {
-            console.error("Error stopping sound:", error);
+            //console.error("Error stopping sound:", error);
         }
     };
 
@@ -403,17 +403,18 @@ const HomeScreen = () => {
                 Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
                 navigation.replace('Login');
             } else {
-                Toast.show({ text1: 'Error', text2: 'Failed to fetch video files. Please try again later.', type: 'error' });
+                // Toast.show({ text1: 'Error', text2: 'Failed to fetch video files. Please try again later.', type: 'error' });
                 setvideoFiles([]);
             }
         });
     };
 
     const playVideo = async (videoPath, id) => {
+
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-video.mp4`;
         setLoading(true);
         const payload = {
-            file_path: `video/${videoPath}`,
+            file_path: videoPath.startsWith('video/') ? videoPath : `video/${videoPath}`,
         };
         const requestOptions = {
             method: 'POST',
@@ -429,6 +430,8 @@ const HomeScreen = () => {
                 await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
             }
             const response = await fetch(`${apiUrl}/api/voice/video/play`, requestOptions);
+            console.log('response', response);
+
             if (response.ok) {
                 const blob = await response.blob();
                 const fileReader = new FileReader();
@@ -442,11 +445,11 @@ const HomeScreen = () => {
                 };
                 fileReader.readAsDataURL(blob);
             } else {
-                console.error('Error fetching video file:', response.status);
+                //console.error('Error fetching video file:', response.status);
                 Alert.alert('Error', 'Unable to fetch video from server.');
             }
         } catch (error) {
-            console.error('Error playing video:', error);
+            //console.error('Error playing video:', error);
             Alert.alert('Error', 'An error occurred while fetching the video.');
         }
     };
@@ -550,23 +553,27 @@ const HomeScreen = () => {
             </View>
 
             <Text style={styles.sectionTitle}>Choose your Favourite Audio File</Text>
-            <FlatList
-                data={audioFiles}
-                renderItem={renderAudioFile}
-                keyExtractor={(item) => item.id}
-                style={styles.audioList} />
-
+            <View style={styles.fixedListContainer}>
+                <FlatList
+                    data={audioFiles}
+                    renderItem={renderAudioFile}
+                    keyExtractor={(item) => item.id}
+                    style={styles.audioList}
+                    showsVerticalScrollIndicator={true}
+                />
+            </View>
             <Text style={styles.sectionTitle}>Choose Your Favorite Video File</Text>
-            <FlatList
-                data={videoFiles}
-                renderItem={renderVideoFile}
-                keyExtractor={(item) => item.id}
-                style={styles.audioList} />
+            <View style={styles.fixedListContainer}>
+                <FlatList
+                    data={videoFiles}
+                    renderItem={renderVideoFile}
+                    keyExtractor={(item) => item.id}
+                    style={styles.audioList} />
+            </View>
             {
                 videoUri && (
                     <Modal animationType="slide" transparent={false} visible={!!videoUri}>
                         <View style={styles.videoContainer}>
-
                             <Video
                                 ref={videoRef}
                                 source={{ uri: videoUri }}
@@ -583,15 +590,23 @@ const HomeScreen = () => {
                 )
             }
         </View >
+
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         padding: 20,
-        paddingTop: 70,
+        marginTop: 90,
         backgroundColor: '#fff',
+    }, scrollContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    contentContainer: {
+        flexGrow: 1, // Allows scrolling when content overflows
+        paddingBottom: 20, // Adds some space at the bottom to ensure smooth scrolling
     },
     title: {
         fontSize: 24,
@@ -682,6 +697,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#eee',
     },
+    fixedListContainer: {
+        height: 200, // Set a fixed height for the list
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        marginBottom: 20,
+        overflow: 'hidden',
+    },
     audioInfo: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -743,5 +766,30 @@ const styles = StyleSheet.create({
         height: '80%',
     },
 });
+
+if (Platform.OS === 'web') {
+    const globalStyle = document.createElement('style');
+    globalStyle.innerHTML = `
+        ::-webkit-scrollbar {
+            width: 6px; /* Reduced width */
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c0dbf2; /* Light blue */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0c4de; /* Darker blue on hover */
+        }
+        ::-webkit-scrollbar-thumb:active {
+            background: #7daed6;
+        }
+    `;
+    document.head.appendChild(globalStyle);
+}
 
 export default HomeScreen;

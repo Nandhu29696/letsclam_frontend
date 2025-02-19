@@ -71,7 +71,7 @@ const AudioUpload = () => {
             const data = await response.json();
             setAudioFiles(data);
         } else {
-            // console.error('Failed to fetch audio files. Status:', response.status);
+            // //console.error('Failed to fetch audio files. Status:', response.status);
             setAudioFiles([]);
         }
     };
@@ -90,7 +90,7 @@ const AudioUpload = () => {
                 setFile(result.assets[0]);
             }
         } catch (error) {
-            // console.error("Error picking file:", error);
+            // //console.error("Error picking file:", error);
         }
     };
     function getFileExtension(filename) {
@@ -134,7 +134,7 @@ const AudioUpload = () => {
 
         try {
             const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
-            console.log(response);
+            //console.log(response);
 
             if (response.ok) {
                 const data = await response.json();
@@ -150,13 +150,13 @@ const AudioUpload = () => {
             fetchAudioFiles();
         } catch (error) {
             Alert.alert('Error', 'Error uploading file.');
-            console.error('Error uploading file:', error);
+            //console.error('Error uploading file:', error);
         }
     };
 
     const playSound = async (audioPath, id) => {
         const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-        console.log('audioPath', audioPath);
+        //console.log('audioPath', audioPath);
 
         let payload = {
             file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`,
@@ -198,7 +198,7 @@ const AudioUpload = () => {
                             await sound.current.unloadAsync();
                             setIsLoaded(false);
                         } catch (err) {
-                            // console.error('Error unloading sound:', err);
+                            // //console.error('Error unloading sound:', err);
                         }
                     }
 
@@ -212,16 +212,16 @@ const AudioUpload = () => {
                         setIsLoaded(true);
                         setPlayingAudioId(id);
                     } catch (err) {
-                        // console.error('Error playing sound:', err);
+                        // //console.error('Error playing sound:', err);
                     }
                 };
 
                 fileReader.readAsDataURL(blob);
             } else {
-                // console.error('Error fetching audio file:', response.status);
+                // //console.error('Error fetching audio file:', response.status);
             }
         } catch (error) {
-            // console.error('Error playing sound:', error);
+            // //console.error('Error playing sound:', error);
         }
     };
 
@@ -238,10 +238,11 @@ const AudioUpload = () => {
             setIsLoaded(false);
             setPlayingAudioId(null); // Reset the currently playing audio ID
         } catch (error) {
-            // console.error("Error stopping sound:", error);
+            // //console.error("Error stopping sound:", error);
         }
     };
     const renderAudioItem = ({ item }) => (
+
         <View style={styles.tableRow}>
             <Text style={[styles.cell, styles.titleCell]}>{item.title}</Text>
             <Text style={[styles.cell, styles.sentimentCell]}>{item.sentiment_type}</Text>
@@ -325,7 +326,7 @@ const AudioUpload = () => {
             }
             fetchAudioFiles();
         } catch (error) {
-            // console.error('Error Updateing file:', error.message);
+            // //console.error('Error Updateing file:', error.message);
             Alert.alert('Error', 'Error Updateing file.');
         }
     }
@@ -353,14 +354,14 @@ const AudioUpload = () => {
                 <Text style={[styles.headerCell, styles.descriptionHeader]}>Description</Text>
                 <Text style={[styles.headerCell, styles.actionsHeader]}>Actions</Text>
             </View>
-
-            <FlatList
-                data={audioFiles}
-                renderItem={renderAudioItem}
-                keyExtractor={(item) => item.id.toString()}
-                style={styles.table}
-            />
-
+            <View style={styles.fixedListContainer}>
+                <FlatList
+                    data={audioFiles}
+                    renderItem={renderAudioItem}
+                    keyExtractor={(item) => item.id.toString()}
+                    style={styles.table}
+                />
+            </View>
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -477,6 +478,14 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#ccc',
+    },
+    fixedListContainer: {
+        height: 200, // Set a fixed height for the list
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        marginBottom: 20,
+        overflow: 'hidden',
     },
     header: {
         fontWeight: 'bold',

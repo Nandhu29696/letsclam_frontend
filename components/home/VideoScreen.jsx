@@ -26,16 +26,16 @@ const VideoScreen = ({ route }) => {
 
         try {
             const response = await fetch(`${apiUrl}/play_video`, requestOptions);
-            console.log('response', response);
+            //console.log('response', response);
 
             if (response.ok) { 
                 const blob = await response.blob();
 
             } else {
-                console.error('Error fetching audio file:', response.status);
+                //console.error('Error fetching audio file:', response.status);
             }
         } catch (error) {
-            console.error('Error playing sound:', error);
+            //console.error('Error playing sound:', error);
         }
     };
     useEffect(()=>{
