@@ -67,10 +67,10 @@ const HomeScreen = () => {
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
-            if (!granted) {
-                //     startRecording();
-                // } else {
-                //console.log('Permission required. Microphone permission is required.');
+            if (granted) {
+                startRecording();
+            } else {
+                console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
         };
