@@ -7,7 +7,7 @@ import React, { createContext, useState, useEffect } from 'react';
 // SecureStore.setItemAsync('API_URL', 'https://54.196.65.220');
 // SecureStore.setItemAsync('API_URL', 'http://192.168.0.135:8000');
 
-const apiUrl = "http://ec2-54-198-16-236.compute-1.amazonaws.com:8000";
+const apiUrl = "http://ec2-98-83-152-200.compute-1.amazonaws.com:8000";
 // const apiUrl = "http://192.168.0.135:8000";
 //console.log('API URL:', apiUrl);
 
@@ -20,7 +20,7 @@ export const AppProvider = ({ children }) => {
 
   // async function getApiUrl() {
   //   const apiget = await SecureStore.getItemAsync('API_URL');
-  //   //console.log('apiget', apiget);
+  //   //console.log('apiget', apiget);w
 
   //   setAPI(apiget);
   // }

@@ -17,6 +17,11 @@ import VideoScreen from './components/home/VideoScreen';
 import ProfileScreen from './components/profile/ProfileScreen';
 import HistoryScreen from './components/profile/HistoryScreen';
 import { Platform } from "react-native";
+import NewFeatures from './components/features/NewFeatures';
+import TermsConditions from './components/profile/TermsConditions';
+import PrivacyPolicy from './components/profile/audioUpload/PrivacyPolicy';
+import ShareAppScreen from './components/features/ShareAppScreen';
+import ContactUsScreen from './components/features/ContactUsScreen';
 
 const Stack = createStackNavigator();
 if (Platform.OS === "android") {
@@ -53,6 +58,11 @@ const App = () => {
           <Stack.Screen name="VideoScreen" component={VideoScreen} />
           <Stack.Screen name="My Profile" component={ProfileScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
+          <Stack.Screen name="New Features" component={NewFeatures} />
+          <Stack.Screen name="Terms & Conditions" component={TermsConditions} />
+          <Stack.Screen name="Privacy Policy" component={PrivacyPolicy} />
+          <Stack.Screen name="Share the app" component={ShareAppScreen} />
+          <Stack.Screen name="Contact Us" component={ContactUsScreen} />
         </Stack.Navigator>
         <Toast />
       </NavigationContainer>

@@ -1,88 +1,57 @@
-import React, { useRef, useEffect, useState, useContext } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { Modal, View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Video } from 'expo-av';
-import { AppContext } from '../../AppContext';
+import { Ionicons } from '@expo/vector-icons'; // For better close button UI
 
-const VideoScreen = ({ route }) => {
-
-    const videoPath = route.params; // The API endpoint passed as a prop
-    const videoRef = useRef(null); // Reference for the Video component
-    const [videoUrl, setVideoUrl] = useState(null); // State to store the fetched video URL
-    const [loading, setLoading] = useState(true); // Loading state for the video
-    const { apiUrl } = useContext(AppContext);
-
-    const playSound = async ( ) => {
-        let payload = {
-            filePath: videoPath,
-        };
-
-        const requestOptions = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        };
-
-        try {
-            const response = await fetch(`${apiUrl}/play_video`, requestOptions);
-            //console.log('response', response);
-
-            if (response.ok) { 
-                const blob = await response.blob();
-
-            } else {
-                //console.error('Error fetching audio file:', response.status);
-            }
-        } catch (error) {
-            //console.error('Error playing sound:', error);
-        }
-    };
-    useEffect(()=>{
-        playSound();
-    })
-
+const VideoPlayer = ({ videoUri, stopVideo, videoRef }) => {
     return (
-        <View style={styles.container}>
-            <Video
-                ref={videoRef}
-                style={styles.video}
-                useNativeControls
-                resizeMode="contain"
-                isLooping
-            />
-
-        </View>
+        <Modal animationType="fade" transparent={true} visible={!!videoUri}>
+            <View style={styles.overlay}>
+                <View style={styles.videoContainer}>
+                    {/* Video Player */}
+                    <Video
+                        ref={videoRef}
+                        source={{ uri: videoUri }}
+                        style={styles.video}
+                        useNativeControls
+                        resizeMode="contain"
+                        shouldPlay
+                    />
+                    
+                    {/* Close Button */}
+                    <TouchableOpacity style={styles.closeButton} onPress={stopVideo}>
+                        <Ionicons name="close-circle" size={40} color="white" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)', // Dark background for focus
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#000',
+    },
+    videoContainer: {
+        width: '90%',
+        height: '50%',
+        borderRadius: 10,
+        overflow: 'hidden',
+        backgroundColor: 'black',
     },
     video: {
         width: '100%',
         height: '100%',
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#000',
-    },
-    errorContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#000',
-    },
-    errorText: {
-        color: '#fff',
-        fontSize: 16,
+    closeButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        zIndex: 10, // Ensure it's above the video
     },
 });
 
-export default VideoScreen;
+export default VideoPlayer;

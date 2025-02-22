@@ -73,7 +73,7 @@ const VideoPlayback = ({ apiUrl, videoPath }) => {
         return () => {
             if (videoRef.current) {
                 videoRef.current.unloadAsync().catch((err) =>
-                    //console.error('Error unloading video on unmount:', err)
+                    console.error('Error unloading video on unmount:', err)
                 );
             }
         };

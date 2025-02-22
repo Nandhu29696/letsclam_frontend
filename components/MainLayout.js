@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { AppContext } from '../AppContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { Icon } from 'react-native-elements';
 
 
 const MainLayout = ({ children, navigation }) => {
@@ -55,12 +56,17 @@ const MainLayout = ({ children, navigation }) => {
   };
 
   const menuOptions = [
-    { title: 'Home', icon: 'home-outline', screen: 'Home' },
-    { title: 'About App', icon: 'information-circle-outline', screen: 'About' },
+    { title: 'Home', icon: 'home', screen: 'Home' },
+    { title: 'About App', icon: 'info-outline', screen: 'About' },
+    { title: 'New Features', icon: 'star-outline', screen: 'New Features' },
+    { title: 'Terms & Conditions', icon: 'edit-document', screen: 'Terms & Conditions' },
+    { title: 'Privacy Policy', icon: 'security', screen: 'Privacy Policy' },
+    { title: 'Share the app', icon: 'share', screen: 'Share the app' },
+    { title: 'Contact Us', icon: 'contact-support', screen: 'Contact Us' },
     // { title: 'Upload Audio', icon: 'musical-notes', screen: 'AudioUpload' },
     // { title: 'Upload Video', icon: 'videocam', screen: 'VideoUpload' },
     { title: 'Profile', icon: 'person', screen: 'My Profile' },
-    { title: 'Logout', icon: 'log-out-outline', screen: 'Logout' }
+    { title: 'Logout', icon: 'logout', screen: 'Logout' }
   ];
 
   return (
@@ -84,7 +90,7 @@ const MainLayout = ({ children, navigation }) => {
                 key={index}
                 style={styles.menuItem}
                 onPress={() => navigateToScreen(option.screen)}>
-                <Ionicons name={option.icon} size={24} color="#000" style={styles.icon} />
+                <Icon name={option.icon} size={24} color="#000" style={styles.icon} />
                 <Text style={styles.menuText}>{option.title}</Text>
                 <Ionicons name="chevron-forward-outline" size={24} color="#000" style={styles.chevronIcon} />
               </TouchableOpacity>

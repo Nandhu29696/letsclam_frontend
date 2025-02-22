@@ -9,6 +9,7 @@ import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { AppContext } from '../../AppContext';
 import { Platform } from 'react-native';
+import VideoPlayer from './VideoScreen';
 
 const HomeScreen = () => {
 
@@ -67,9 +68,9 @@ const HomeScreen = () => {
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
-            if (granted) {
-                startRecording();
-            } else {
+            if (!granted) {
+                //     startRecording();
+                // } else {
                 console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
@@ -231,15 +232,13 @@ const HomeScreen = () => {
 
             formData.append('file', file);
 
-            const headers = {
-                'Content-Type': 'multipart/form-data',
-            };
-
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-
-            const res = await axios.post(`${apiUrl}/api/voice/transcribe`, formData, { headers });
+            const res = await axios.post(`${apiUrl}/api/voice/transcribe`, formData, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": 'multipart/form-data',
+                    "Authorization": `Bearer ${token}`
+                }
+            });
 
             const audioData = res.data?.data;
             if (audioData?.length > 0) {
@@ -303,15 +302,13 @@ const HomeScreen = () => {
             if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
 
             if (Platform.OS === 'web') {
-                // 🌐 Web: Use HTML5 Audio API
                 const blob = await response.blob();
-                //console.log('blob', blob);
                 const audioURL = URL.createObjectURL(blob);
-                //console.log('audioURL ', audioURL);
                 const audio = new window.Audio(audioURL);  // Ensure window.Audio is used
                 audio.load();
                 await audio.play();
-
+                setIsLoaded(true);
+                setPlayingAudioId(id);
                 // Cleanup
                 audio.onended = () => URL.revokeObjectURL(audioURL);
             } else {
@@ -360,6 +357,7 @@ const HomeScreen = () => {
             //console.error('Error playing sound:', error);
         }
     };
+
     useEffect(() => {
         return () => {
             if (sound.current) {
@@ -377,16 +375,20 @@ const HomeScreen = () => {
 
     const stopSound = async () => {
         try {
+
             if (isLoaded && sound.current) {
                 await sound.current.stopAsync();
-                await sound.current.unloadAsync(); // Unload to free resources
-                setPlayingAudioId(null);
+                await sound.current.unloadAsync();
+                sound.current = null; // Reset sound instance
                 setIsLoaded(false);
             }
+            setPlayingAudioId(null);
         } catch (error) {
-            //console.error("Error stopping sound:", error);
+            console.error("Error stopping sound:", error);
         }
     };
+
+
 
     const fetchvideoFiles = async () => {
         await axios.get(`${apiUrl}/api/voice/video/all/${user.userID}`, {
@@ -410,8 +412,13 @@ const HomeScreen = () => {
     };
 
     const playVideo = async (videoPath, id) => {
+        console.log('videoPath', videoPath);
 
-        const cacheFilePath = `${FileSystem.cacheDirectory}temp-video.mp4`;
+        if (Platform.OS !== 'web') {
+            // 🔹 Native platforms (iOS/Android) use cache directory
+            var cacheFilePath = `${FileSystem.cacheDirectory}temp-video.mp4`;
+        }
+
         setLoading(true);
         const payload = {
             file_path: videoPath.startsWith('video/') ? videoPath : `video/${videoPath}`,
@@ -424,32 +431,45 @@ const HomeScreen = () => {
             },
             body: JSON.stringify(payload),
         };
+
         try {
-            const fileInfo = await FileSystem.getInfoAsync(cacheFilePath);
-            if (fileInfo.exists) {
-                await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
+            if (Platform.OS !== 'web') {
+                // 🔹 On mobile, delete the old file before writing a new one
+                const fileInfo = await FileSystem.getInfoAsync(cacheFilePath);
+                if (fileInfo.exists) {
+                    await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
+                }
             }
+
+            // 🔹 Fetch video from API
             const response = await fetch(`${apiUrl}/api/voice/video/play`, requestOptions);
             console.log('response', response);
 
             if (response.ok) {
                 const blob = await response.blob();
-                const fileReader = new FileReader();
-                fileReader.onload = async () => {
-                    const base64data = fileReader.result.split(',')[1];
-                    await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    });
-                    setVideoUri(cacheFilePath);
-                    setPlayingVideoId(id);
-                };
-                fileReader.readAsDataURL(blob);
+
+                if (Platform.OS === 'web') {
+                    // 🔹 Web: Use blob URL instead of filesystem storage
+                    const videoUrl = URL.createObjectURL(blob);
+                    setVideoUri(videoUrl);
+                } else {
+                    // 🔹 Mobile: Store video in cache and play
+                    const fileReader = new FileReader();
+                    fileReader.onload = async () => {
+                        const base64data = fileReader.result.split(',')[1];
+                        await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
+                            encoding: FileSystem.EncodingType.Base64,
+                        });
+                        setVideoUri(cacheFilePath);
+                    };
+                    fileReader.readAsDataURL(blob);
+                }
+                setPlayingVideoId(id);
             } else {
-                //console.error('Error fetching video file:', response.status);
                 Alert.alert('Error', 'Unable to fetch video from server.');
             }
         } catch (error) {
-            //console.error('Error playing video:', error);
+            console.error('Error playing video:', error);
             Alert.alert('Error', 'An error occurred while fetching the video.');
         }
     };
@@ -510,7 +530,7 @@ const HomeScreen = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.stopButton}
-                    onPress={stopSound} >
+                    onPress={stopVideo} >
                     <Icon name="stop" size={14} color="f70d1a" />
                     <Text style={[styles.buttonText, { color: "#f70d1a" }]}>Stop</Text>
                 </TouchableOpacity>
@@ -572,21 +592,8 @@ const HomeScreen = () => {
             </View>
             {
                 videoUri && (
-                    <Modal animationType="slide" transparent={false} visible={!!videoUri}>
-                        <View style={styles.videoContainer}>
-                            <Video
-                                ref={videoRef}
-                                source={{ uri: videoUri }}
-                                style={styles.video}
-                                useNativeControls
-                                resizeMode="contain"
-                                shouldPlay
-                            />
-                            <TouchableOpacity style={styles.stopButton} onPress={stopVideo}>
-                                <Text style={styles.stopButtonText}>Stop Video</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Modal>
+                    <VideoPlayer videoUri={videoUri} videoRef={videoRef} stopVideo={stopVideo} />
+
                 )
             }
         </View >
@@ -598,15 +605,9 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         padding: 20,
-        marginTop: 90,
+        paddingTop: 100,
+        width: '100%',
         backgroundColor: '#fff',
-    }, scrollContainer: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    contentContainer: {
-        flexGrow: 1, // Allows scrolling when content overflows
-        paddingBottom: 20, // Adds some space at the bottom to ensure smooth scrolling
     },
     title: {
         fontSize: 24,
@@ -698,7 +699,7 @@ const styles = StyleSheet.create({
         borderColor: '#eee',
     },
     fixedListContainer: {
-        height: 200, // Set a fixed height for the list
+        height: 200,
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,

@@ -350,7 +350,7 @@ const AudioUpload = () => {
 
             <View style={styles.tableHeader}>
                 <Text style={[styles.headerCell, styles.titleHeader]}>Title</Text>
-                <Text style={[styles.headerCell, styles.sentimentheader]}>Sentiment type</Text>
+                <Text style={[styles.headerCell, styles.sentimentheader]}>Sentiment</Text>
                 <Text style={[styles.headerCell, styles.descriptionHeader]}>Description</Text>
                 <Text style={[styles.headerCell, styles.actionsHeader]}>Actions</Text>
             </View>
@@ -456,18 +456,18 @@ const AudioUpload = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        padding: 10,
         backgroundColor: '#fff',
     },
     subContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 10,
     },
     title: {
         fontSize: 20,
-        width: '70%',
+        width: '60%',
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
     },
     fixedListContainer: {
-        height: 200, // Set a fixed height for the list
+        height: 200, 
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
@@ -528,10 +528,10 @@ const styles = StyleSheet.create({
         flex: 1.5,
     },
     descriptionHeader: {
-        flex: 3,
+        flex: 2.5,
     },
     actionsHeader: {
-        flex: 1,
+        flex:2,
         textAlign: 'center',
     },
     cell: {
@@ -540,16 +540,16 @@ const styles = StyleSheet.create({
         fontSize: 11, // Reduced font size for table data
     },
     titleCell: {
-        flex: 2,
-    },
-    sentimentCell: {
         flex: 1.5,
     },
+    sentimentCell: {
+        flex: 2,
+    },
     descriptionCell: {
-        flex: 3,
+        flex: 2.5,
     },
     actionsCell: {
-        flex: 1,
+        flex: 2,
         flexDirection: 'row',
         justifyContent: 'center',
     },
