@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import { Audio, Video } from 'expo-av';
@@ -68,9 +68,9 @@ const HomeScreen = () => {
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
-            if (!granted) {
-                //     startRecording();
-                // } else {
+            if (granted) {
+                await startRecording();
+            } else {
                 console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
@@ -544,7 +544,12 @@ const HomeScreen = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Welcome to LetsCalm</Text>
+            <View style={styles.headerContainer}>
+                <Text style={styles.title}>Welcome to LetsCalm</Text>
+                <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('History')}>
+                    <MaterialIcons name="history" size={25} color="#007bff" />
+                </TouchableOpacity>
+            </View>
             <Text style={styles.subtitle}>Stops Conflict-Promotes Happiness</Text>
 
             <View style={styles.descriptionContainer}>
@@ -609,11 +614,22 @@ const styles = StyleSheet.create({
         width: '100%',
         backgroundColor: '#fff',
     },
+    headerContainer: {
+        flexDirection: 'row',  // Align items in a row
+        alignItems: 'center',  // Align items vertically in the center
+        justifyContent: 'space-between', // Adjust spacing
+        padding: 10,  // Add padding
+    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'left',
         marginBottom: 5,
+    },
+    historyButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
     },
     subtitle: {
         fontSize: 14,
