@@ -524,8 +524,8 @@ const styles = StyleSheet.create({
     titleHeader: {
         flex: 2,
     },
-    sentimentHeader: {
-        flex: 1.5,
+    sentimentheader: {
+        flex: 2,
     },
     descriptionHeader: {
         flex: 2.5,

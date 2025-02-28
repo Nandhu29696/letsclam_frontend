@@ -68,9 +68,9 @@ const HomeScreen = () => {
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
-            if (granted) {
-                await startRecording();
-            } else {
+            if (!granted) {
+                //     await startRecording();
+                // } else {
                 console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
@@ -244,8 +244,9 @@ const HomeScreen = () => {
             if (audioData?.length > 0) {
                 const { file_name, id } = audioData[0];
                 playSound(file_name, id);
+                await stopRecording();
             } else {
-                Toast.show({ text1: 'No Transcription Data', text2: 'No matching audio found.', type: 'info' });
+                // Toast.show({ text1: 'No Transcription Data', text2: 'No matching audio found.', type: 'info' });
             }
         } catch (error) {
             const status = error.response?.status;
@@ -388,8 +389,6 @@ const HomeScreen = () => {
         }
     };
 
-
-
     const fetchvideoFiles = async () => {
         await axios.get(`${apiUrl}/api/voice/video/all/${user.userID}`, {
             headers: {
@@ -484,11 +483,11 @@ const HomeScreen = () => {
     };
 
     const renderAudioFile = ({ item }) => (
-        <View style={styles.audioCard}>
+        <View style={ playingAudioId === item.id ?styles.audioCardBg: styles.audioCard}>
             <View style={styles.audioInfo}>
                 <Ionicons name="musical-notes-outline" size={22} color="black" style={styles.icon} />
                 <View>
-                    <Text style={styles.audioTitle}>{item.title}</Text>
+                    <Text style={styles.audioTitle}>{item.title} - {item.sentiment_type}</Text>
                     <Text style={styles.audioDescription}>{item.description}</Text>
                 </View>
             </View>
@@ -705,6 +704,14 @@ const styles = StyleSheet.create({
     },
     audioList: {
         marginBottom: 10,
+    },
+    audioCardBg: {
+        padding: 15,
+        backgroundColor: '#95baf5',
+        borderRadius: 10,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#eee',
     },
     audioCard: {
         padding: 15,
