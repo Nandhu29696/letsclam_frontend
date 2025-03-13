@@ -32,7 +32,9 @@
       "eas": {
         "projectId": "e5d56616-bc98-43a0-bd28-6d7a560a1a52"
       },
-      "API_URL": "https://54.196.65.220"
+      "expo-updates": {
+        "fallbackToCacheTimeout": 0
+      }
     },
     "plugins": [
       "expo-video",

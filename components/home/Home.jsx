@@ -68,9 +68,9 @@ const HomeScreen = () => {
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
-            if (!granted) {
-                //     await startRecording();
-                // } else {
+            if (granted) {
+                await startRecording();
+            } else {
                 console.log('Permission required. Microphone permission is required.');
                 Alert.alert('Permission required', 'Microphone permission is required.');
             }
@@ -182,7 +182,7 @@ const HomeScreen = () => {
                     const newIntervalId = setInterval(async () => {
                         //console.log('1-minute interval reached. Stopping recording...');
                         handlePauseAndSave(newRecording);
-                    }, 60000);
+                    }, 30000);
                     setIntervalId(newIntervalId);
                 }, 500);
             } else {
@@ -253,12 +253,12 @@ const HomeScreen = () => {
             const errorMessage = error.response?.data?.message;
 
             if (status === 401) {
-                Toast.show({ text1: 'Unauthorized', text2: 'Session expired. Please log in again.', type: 'error' });
+                // Toast.show({ text1: 'Unauthorized', text2: 'Session expired. Please log in again.', type: 'error' });
                 navigation.replace('Login');
             } else if (status === 404 && errorMessage === 'No audio files found.') {
-                Toast.show({ text1: 'No Audio Found', text2: 'No audio files were found for transcription.', type: 'info' });
+                // Toast.show({ text1: 'No Audio Found', text2: 'No audio files were found for transcription.', type: 'info' });
             } else {
-                Toast.show({ text1: 'Error', text2: 'Failed to transcribe audio. Try again later.', type: 'error' });
+                // Toast.show({ text1: 'Error', text2: 'Failed to transcribe audio. Try again later.', type: 'error' });
             }
         } finally {
             setLoading(false);
@@ -376,13 +376,18 @@ const HomeScreen = () => {
 
     const stopSound = async () => {
         try {
+            const status = await sound.current.getStatusAsync();
+            console.log('status', status);
+            console.log('isLoaded', isLoaded);
+            console.log('sound.current', sound.current);
 
             if (isLoaded && sound.current) {
                 await sound.current.stopAsync();
-                await sound.current.unloadAsync();
-                sound.current = null; // Reset sound instance
-                setIsLoaded(false);
             }
+            await sound.current.unloadAsync();
+            sound.current = null; // Reset sound instance
+            setIsLoaded(false);
+
             setPlayingAudioId(null);
         } catch (error) {
             console.error("Error stopping sound:", error);
@@ -483,7 +488,7 @@ const HomeScreen = () => {
     };
 
     const renderAudioFile = ({ item }) => (
-        <View style={ playingAudioId === item.id ?styles.audioCardBg: styles.audioCard}>
+        <View style={playingAudioId === item.id ? styles.audioCardBg : styles.audioCard}>
             <View style={styles.audioInfo}>
                 <Ionicons name="musical-notes-outline" size={22} color="black" style={styles.icon} />
                 <View>

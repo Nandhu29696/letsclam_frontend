@@ -25,6 +25,8 @@ const LoginPage = ({ navigation }) => {
                 'Content-Type': 'application/json',
             },
         }).then(async (res) => {
+            console.log('res', res);
+
             const data = res.data;
             Toast.show({ text1: 'Login Successful', text2: 'Welcome back!', type: 'success' });
             await AsyncStorage.setItem('userProfile', JSON.stringify(data));
