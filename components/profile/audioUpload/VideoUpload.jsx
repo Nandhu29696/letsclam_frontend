@@ -99,7 +99,7 @@ const VideoUpload = () => {
 
     const uploadFile = async () => {
         if (!file || !title || !description) {
-            Alert.alert('Error', 'Please fill in all fields and select a file.');
+            // Alert.alert('Error', 'Please fill in all fields and select a file.');
             return;
         }
         const formData = new FormData();
@@ -236,11 +236,12 @@ const VideoUpload = () => {
 
     const renderVideoItem = ({ item }) => (
         <View style={styles.tableRow}>
-            <Text style={[styles.cell, styles.titleCell]}>{item.title}</Text>
-            <Text style={[styles.cell, styles.descriptionCell]}>{item.description}</Text>
+            <Text style={[styles.cell, styles.titleHeader]}>{item.title}</Text>
+            <Text style={[styles.cell, styles.sentimentheader]}>{item.sentiment_type}</Text>
+            <Text style={[styles.cell, styles.descriptionHeader]}>{item.description}</Text>
             <View style={styles.actionsCell}>
                 {/* <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
-                    <AntDesign name="edit" size={15} color="#007bff" />
+                    <AntDesign name="edit" size={15} color="#029fe4" />
                 </TouchableOpacity> */}
                 {playingVideoId === item.id ? (
                     <TouchableOpacity onPress={() => stopVideo()} style={styles.actionButton}>
@@ -277,6 +278,7 @@ const VideoUpload = () => {
 
             <View style={styles.tableHeader}>
                 <Text style={[styles.headerCell, styles.titleHeader]}>Title</Text>
+                <Text style={[styles.headerCell, styles.sentimentheader]}>Sentiment</Text>
                 <Text style={[styles.headerCell, styles.descriptionHeader]}>Description</Text>
                 <Text style={[styles.headerCell, styles.actionsHeader]}>Actions</Text>
             </View>
@@ -331,7 +333,7 @@ const VideoUpload = () => {
                             <Text style={styles.label}>Select Sentiment:</Text>
                             <View style={styles.pickerWrapper}>
                                 {loading ? (
-                                    <ActivityIndicator size="small" color="#007bff" />
+                                    <ActivityIndicator size="small" color="#029fe4" />
                                 ) : (
                                     <Picker
                                         selectedValue={selectedSentiment}
@@ -423,11 +425,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 10,
     },
     title: {
         fontSize: 20,
-        width: '70%',
+        width: '60%',
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
@@ -440,7 +442,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
     },
     fixedListContainer: {
-        height: 200, // Set a fixed height for the list
+        height: 300, 
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
         width: '30%',
     },
     createButton: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#029fe4',
         padding: 5,
         width: '10%',
         borderRadius: 5,
@@ -463,48 +465,49 @@ const styles = StyleSheet.create({
     },
     tableHeader: {
         flexDirection: 'row',
+        backgroundColor: '#f0f0f0',
+        paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        paddingVertical: 10,
+        borderBottomColor: '#ddd',
+    },
+    tableRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
     },
     headerCell: {
         fontWeight: 'bold',
-        fontSize: 14,
+        paddingHorizontal: 8,
+        textAlign: 'left',
+        fontSize: 12, // Reduced font size for header
     },
     titleHeader: {
         flex: 2,
     },
-    descriptionHeader: {
-        flex: 3,
-    },
-    actionsHeader: {
-        flex: 1,
-        textAlign: 'center',
-    },
-    tableRow: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    cell: {
-        fontSize: 14,
-    },
-    titleCell: {
+    sentimentheader: {
         flex: 2,
     },
-    descriptionCell: {
-        flex: 3,
+    descriptionHeader: {
+        flex: 2.5,
+    },
+    actionsHeader: {
+        flex: 2,
+        textAlign: 'center',
+    },
+    cell: {
+        paddingHorizontal: 7,
+        textAlign: 'left',
+        fontSize: 11, // Reduced font size for table data
     },
     actionsCell: {
-        flex: 1,
+        flex: 2,
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        gap: 5
+        justifyContent: 'center',
     },
     actionButton: {
-        padding: 5,
+        marginHorizontal: 5,
     },
     row: {
         flexDirection: 'row',
@@ -556,7 +559,7 @@ const styles = StyleSheet.create({
         gap: 15,
     },
     button: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#029fe4',
         padding: 10,
         borderRadius: 5,
         marginVertical: 5,

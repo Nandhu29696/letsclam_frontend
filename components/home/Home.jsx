@@ -56,7 +56,7 @@ const HomeScreen = () => {
     const refreshPage = () => {
         fetchAudioFiles();
         fetchvideoFiles();
-        //console.log('Screen refreshed!');
+        startRecording();
     };
 
     useFocusEffect(
@@ -65,14 +65,23 @@ const HomeScreen = () => {
         }, [])
     );
 
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         return () => {
+    //             if (isRecording) stopRecording();
+    //             if (isLoaded) stopSound();
+    //         };
+    //     }, [isRecording, isLoaded])
+    // );
+
     useEffect(() => {
         const initializeRecording = async () => {
             const { granted } = await Audio.requestPermissionsAsync();
             if (granted) {
                 await startRecording();
             } else {
-                console.log('Permission required. Microphone permission is required.');
-                Alert.alert('Permission required', 'Microphone permission is required.');
+                // console.log('Permission required. Microphone permission is required.');
+                // Alert.alert('Permission required', 'Microphone permission is required.');
             }
         };
         initializeRecording();
@@ -135,10 +144,10 @@ const HomeScreen = () => {
                     await transcribeAudio(uri);
                 }
                 setRecording(null);
-                Toast.show({
-                    text1: 'Recording Stopped..',
-                    type: 'success',
-                });
+                // Toast.show({
+                //     text1: 'Recording Stopped..',
+                //     type: 'success',
+                // });
             }
         } catch (error) {
             //console.error('Error stopping recording:', error);
@@ -182,7 +191,7 @@ const HomeScreen = () => {
                     const newIntervalId = setInterval(async () => {
                         //console.log('1-minute interval reached. Stopping recording...');
                         handlePauseAndSave(newRecording);
-                    }, 30000);
+                    }, 60000);
                     setIntervalId(newIntervalId);
                 }, 500);
             } else {
@@ -210,7 +219,7 @@ const HomeScreen = () => {
 
     const transcribeAudio = async (uri) => {
         if (!uri) {
-            Toast.show({ text1: 'Error', text2: 'Invalid audio file.', type: 'error' });
+            // Toast.show({ text1: 'Error', text2: 'Invalid audio file.', type: 'error' });
             return;
         }
 
@@ -277,10 +286,10 @@ const HomeScreen = () => {
         }).catch((error) => {
             const status = error.response?.status;
             if (status === 401) {
-                Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
+                // Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
                 navigation.replace('Login');
             } else {
-                Toast.show({ text1: 'Error', text2: 'Failed to fetch audio files. Please try again later.', type: 'error' });
+                // Toast.show({ text1: 'Error', text2: 'Failed to fetch audio files. Please try again later.', type: 'error' });
                 setaudioFiles([]);
             }
         });
@@ -377,9 +386,9 @@ const HomeScreen = () => {
     const stopSound = async () => {
         try {
             const status = await sound.current.getStatusAsync();
-            console.log('status', status);
-            console.log('isLoaded', isLoaded);
-            console.log('sound.current', sound.current);
+            // console.log('status', status);
+            // console.log('isLoaded', isLoaded);
+            // console.log('sound.current', sound.current);
 
             if (isLoaded && sound.current) {
                 await sound.current.stopAsync();
@@ -390,7 +399,7 @@ const HomeScreen = () => {
 
             setPlayingAudioId(null);
         } catch (error) {
-            console.error("Error stopping sound:", error);
+            // console.error("Error stopping sound:", error);
         }
     };
 
@@ -406,7 +415,7 @@ const HomeScreen = () => {
         }).catch((error) => {
             const status = error.response?.status;
             if (status === 401) {
-                Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
+                // Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
                 navigation.replace('Login');
             } else {
                 // Toast.show({ text1: 'Error', text2: 'Failed to fetch video files. Please try again later.', type: 'error' });
@@ -416,7 +425,7 @@ const HomeScreen = () => {
     };
 
     const playVideo = async (videoPath, id) => {
-        console.log('videoPath', videoPath);
+        // console.log('videoPath', videoPath);
 
         if (Platform.OS !== 'web') {
             // 🔹 Native platforms (iOS/Android) use cache directory
@@ -447,7 +456,7 @@ const HomeScreen = () => {
 
             // 🔹 Fetch video from API
             const response = await fetch(`${apiUrl}/api/voice/video/play`, requestOptions);
-            console.log('response', response);
+            // console.log('response', response);
 
             if (response.ok) {
                 const blob = await response.blob();
@@ -489,69 +498,83 @@ const HomeScreen = () => {
 
     const renderAudioFile = ({ item }) => (
         <View style={playingAudioId === item.id ? styles.audioCardBg : styles.audioCard}>
+            {/* Audio Info Section */}
             <View style={styles.audioInfo}>
                 <Ionicons name="musical-notes-outline" size={22} color="black" style={styles.icon} />
-                <View>
-                    <Text style={styles.audioTitle}>{item.title} - {item.sentiment_type}</Text>
-                    <Text style={styles.audioDescription}>{item.description}</Text>
+                <View style={[styles.textContainer, !item.description && styles.centerContent]}>
+                    <Text style={styles.audioTitle}>{item.title}{item.sentiment_type ? ` - ${item.sentiment_type}` : ""}</Text>
+                    {item.description ? (
+                        <Text style={styles.audioDescription}>{item.description}</Text>
+                    ) : null}
                 </View>
+
             </View>
+
+            {/* Play & Stop Icons */}
             <View style={styles.audioControls}>
-                <TouchableOpacity
-                    style={[styles.playButton, playingAudioId === item.id && styles.playButtonActive]}
-                    onPress={() => playSound(item.file_name, item.id)}>
-                    <Icon name="play" size={14} color={playingAudioId === item.id ? "white" : "#3caeff"} />
-                    <Text style={[styles.buttonText, { color: playingAudioId === item.id ? "blue" : "#3caeff" }]}>Play</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.stopButton}
-                    onPress={stopSound}>
-                    <Icon name="stop" size={14} color="f70d1a" />
-                    <Text style={[styles.buttonText, { color: "#f70d1a" }]}>Stop</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.selectButton}>
-                    <Icon name="check" size={14} color="#00b34c" />
-                    <Text style={[styles.buttonText, { color: "#00b34c" }]}>Select</Text>
-                </TouchableOpacity>
+                <Ionicons
+                    name="play-circle"
+                    size={20}
+                    color="green"
+                    onPress={() => playSound(item.file_name, item.id)}
+                    style={styles.iconButton}
+                />
+                <Ionicons
+                    name="stop-circle"
+                    size={20}
+                    color="red"
+                    onPress={stopSound}
+                    style={styles.iconButton}
+                />
             </View>
         </View>
     );
 
     const renderVideoFile = ({ item }) => (
         <View style={styles.audioCard}>
-            <View style={styles.audioInfo}>
+            <View style={styles.audioRow}>
+                {/* Video Icon */}
                 <Ionicons name="videocam-outline" size={22} color="black" style={styles.icon} />
-                <View>
-                    <Text style={styles.audioTitle}>{item.title}</Text>
+
+                {/* Title and Sentiment */}
+                <View style={styles.audioTextContainer}>
+                    <View style={[styles.textContainer, !item.description && styles.centerContent]}>
+                        <Text style={styles.audioTitle}>{item.title}{item.sentiment_type ? ` - ${item.sentiment_type}` : ""}</Text>
+                        {item.description ? (
+                            <Text style={styles.audioDescription}>{item.description}</Text>
+                        ) : null}
+                    </View>
                 </View>
-            </View>
-            <View style={styles.audioControls}>
-                <TouchableOpacity
-                    style={styles.playButton}
-                    onPress={() => playVideo(item.file_name, item.id)} >
-                    <Icon name="play" size={14} color={playingAudioId === item.id ? "white" : "#3caeff"} />
-                    <Text style={[styles.buttonText, { color: playingAudioId === item.id ? "blue" : "#3caeff" }]}>Play</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.stopButton}
-                    onPress={stopVideo} >
-                    <Icon name="stop" size={14} color="f70d1a" />
-                    <Text style={[styles.buttonText, { color: "#f70d1a" }]}>Stop</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.selectButton}>
-                    <Icon name="check" size={14} color="#00b34c" />
-                    <Text style={[styles.buttonText, { color: "#00b34c" }]}>Select</Text>
-                </TouchableOpacity>
+
+                {/* Play & Stop Icons */}
+                <View style={styles.audioControls}>
+                    <Ionicons
+                        name="play-circle"
+                        size={20}
+                        color="green"
+                        onPress={() => playVideo(item.file_name, item.id)}
+                        style={styles.iconButton}
+                    />
+                    <Ionicons
+                        name="stop-circle"
+                        size={20}
+                        color="red"
+                        onPress={stopVideo}
+                        style={styles.iconButton}
+                    />
+                </View>
             </View>
         </View>
     );
+
+
 
     return (
         <View style={styles.container}>
             <View style={styles.headerContainer}>
                 <Text style={styles.title}>Welcome to LetsCalm</Text>
                 <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('History')}>
-                    <MaterialIcons name="history" size={25} color="#007bff" />
+                    <MaterialIcons name="history" size={25} color="#029fe4" />
                 </TouchableOpacity>
             </View>
             <Text style={styles.subtitle}>Stops Conflict-Promotes Happiness</Text>
@@ -614,21 +637,22 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         padding: 20,
-        paddingTop: 100,
+        paddingTop: 70,
         width: '100%',
-        backgroundColor: '#fff',
+        backgroundColor: '#eeeee4',
     },
     headerContainer: {
-        flexDirection: 'row',  // Align items in a row
-        alignItems: 'center',  // Align items vertically in the center
+        flexDirection: 'row',
         justifyContent: 'space-between', // Adjust spacing
-        padding: 10,  // Add padding
+        padding: 10,
+        paddingTop: 0
     },
     title: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         textAlign: 'left',
         marginBottom: 5,
+        paddingLeft: 30
     },
     historyButton: {
         flexDirection: 'row',
@@ -657,10 +681,10 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     description: {
-        fontSize: 13,
+        fontSize: 11,
         textAlign: 'left',
         color: '#888',
-        marginBottom: 5
+        marginBottom: 2
     },
     recordingButtons: {
         flexDirection: 'row',
@@ -711,21 +735,28 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     audioCardBg: {
-        padding: 15,
         backgroundColor: '#95baf5',
-        borderRadius: 10,
-        marginBottom: 10,
+        padding: 10,
+        marginVertical: 5,
+        borderRadius: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: "#eee",
     },
     audioCard: {
-        padding: 15,
+        padding: 10,
+        marginVertical: 5,
         backgroundColor: '#f9f9f9',
-        borderRadius: 10,
-        marginBottom: 10,
+        borderRadius: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: "#eee",
     },
+
     fixedListContainer: {
         height: 200,
         borderWidth: 1,
@@ -743,11 +774,10 @@ const styles = StyleSheet.create({
     },
     audioTitle: {
         fontSize: 14,
-        padding: 4,
         fontWeight: 'bold',
     },
     audioDescription: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#777',
     },
     audioControls: {
@@ -793,6 +823,25 @@ const styles = StyleSheet.create({
     video: {
         width: '100%',
         height: '80%',
+    },
+    audioRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1, // Ensures it stretches across available space
+    },
+
+    audioTextContainer: {
+        flex: 1, // Allows text to take available space
+    },
+    iconButton: {
+        marginLeft: 2,
+    },
+    textContainer: {
+        alignItems: 'flex-start', // Default alignment when description is present
+    },
+    centerContent: {
+        alignItems: 'center', // Center content if no description
+        justifyContent: 'center',
     },
 });
 

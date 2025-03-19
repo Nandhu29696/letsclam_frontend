@@ -171,7 +171,7 @@
 //                 <FontAwesome name={isRecording ? 'stop' : 'microphone'} size={30} color="#fff" />
 //                 <Text style={styles.buttonText}>{isRecording ? 'Stop' : 'Start'}</Text>
 //             </TouchableOpacity>
-//             {loading && <ActivityIndicator size="large" color="#007bff" style={styles.loader} />}
+//             {loading && <ActivityIndicator size="large" color="#029fe4" style={styles.loader} />}
 //         </View>
 //     );
 // };
@@ -201,7 +201,7 @@
 //         backgroundColor: '#ff4d4d',
 //     },
 //     notRecording: {
-//         backgroundColor: '#007bff',
+//         backgroundColor: '#029fe4',
 //     },
 //     buttonText: {
 //         fontSize: 16,

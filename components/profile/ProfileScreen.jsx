@@ -58,17 +58,23 @@ const ProfileScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.historyContainer}>
-                <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('History')}>
-                    <MaterialIcons name="history" size={25} color="#007bff" />
-                </TouchableOpacity>
-            </View> 
-            <View style={styles.profileContainer}> 
-                <Image source={{ uri: userdet.profilePicture }} style={styles.profilePicture} />
-                <Text style={styles.userName}>{userfile ? userfile.name : userdet.name}</Text>
-                <Text style={styles.userInfo}>Email: {userfile.email}</Text>
-                <Text style={styles.userInfo}>Phone: {userdet.phone}</Text>
-                <Text style={styles.userInfo}>Country: {userdet.country}</Text>
+
+            <View style={styles.profileContainer}>
+                <View>
+                    <Image source={{ uri: userdet.profilePicture }} style={styles.profilePicture} />
+                </View>
+                <View>
+                    <View style={styles.historyContainer}>
+                        <Text style={styles.userName}>{userfile ? userfile.name : userdet.name}</Text>
+                        <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('History')}>
+                            <MaterialIcons name="history" size={25} color="#029fe4" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.userInfo}>Email: {userfile.email}</Text>
+                    <Text style={styles.userInfo}>Phone: {userdet.phone}</Text>
+                    <Text style={styles.userInfo}>Country: {userdet.country}</Text>
+                </View>
             </View>
 
             <TabView
@@ -96,7 +102,10 @@ const styles = StyleSheet.create({
     },
     profileContainer: {
         alignItems: 'center',
-        padding: 20,
+        display: 'flex',
+        flexDirection: 'row',
+        gap: 20,
+        padding: 15,
         backgroundColor: '#ffffff',
         marginBottom: 10,
     },
@@ -107,17 +116,18 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     userName: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
     },
     userInfo: {
-        fontSize: 16,
+        fontSize: 12,
         color: '#555',
         marginTop: 5,
     },
     tabBar: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#029fe4',
+        height:40,
     },
     tabLabel: {
         color: '#ffffff',
@@ -127,7 +137,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#ffffff',
     },
     tabContent: {
-        padding: 20,
+        padding: 10,
     },
     fileItem: {
         fontSize: 16,
@@ -137,10 +147,10 @@ const styles = StyleSheet.create({
     },
     historyContainer: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 10,
-        paddingRight:30
+        padding: 0,
+        paddingRight: 10
     },
     historyButton: {
         flexDirection: 'row',
@@ -149,7 +159,7 @@ const styles = StyleSheet.create({
     },
     historyText: {
         fontSize: 14,
-        color: '#007bff',
+        color: '#029fe4',
         marginRight: 4,
     },
 

@@ -33,7 +33,8 @@ const AudioUpload = () => {
     const sound = React.useRef(new Audio.Sound());
     const [playingAudioId, setPlayingAudioId] = useState(null); // State to track the currently playing audio
     const [isGeneric, setIsGeneric] = useState(false);
-    const [selectedSentiment, setSelectedSentiment] = useState('happy');
+    const [selectedSentiment, setSelectedSentiment] = useState('');
+    const [filterSentiment, setfilterSentiment] = useState('');
     const [loading, setLoading] = useState(true);
 
     const fetchSentiments = async () => {
@@ -46,7 +47,6 @@ const AudioUpload = () => {
                 }
             });
             const data = await response.json();
-
             if (data && Array.isArray(data)) {
                 setSentiments(data);
             } else {
@@ -70,6 +70,7 @@ const AudioUpload = () => {
         if (response.ok) {
             const data = await response.json();
             setAudioFiles(data);
+            setFilteredAudioFiles(data)
         } else {
             // //console.error('Failed to fetch audio files. Status:', response.status);
             setAudioFiles([]);
@@ -242,14 +243,13 @@ const AudioUpload = () => {
         }
     };
     const renderAudioItem = ({ item }) => (
-
         <View style={styles.tableRow}>
-            <Text style={[styles.cell, styles.titleCell]}>{item.title}</Text>
-            <Text style={[styles.cell, styles.sentimentCell]}>{item.sentiment_type}</Text>
-            <Text style={[styles.cell, styles.descriptionCell]}>{item.description}</Text>
+            <Text style={[styles.cell, styles.titleHeader]}>{item.title}</Text>
+            <Text style={[styles.cell, styles.sentimentheader]}>{item.sentiment_type}</Text>
+            <Text style={[styles.cell, styles.descriptionHeader]}>{item.description}</Text>
             <View style={styles.actionsCell}>
                 <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
-                    <AntDesign name="edit" size={15} color="#007bff" />
+                    <AntDesign name="edit" size={15} color="#029fe4" />
                 </TouchableOpacity>
                 {/* <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
                     <AntDesign name="delete" size={15} color="red" />
@@ -331,6 +331,20 @@ const AudioUpload = () => {
         }
     }
 
+    const [filteredAudioFiles, setFilteredAudioFiles] = useState([])
+    const handleSentimentChange = (selectedValue) => {
+        setSelectedSentiment(selectedValue);
+        if (selectedValue === "All") {
+            setFilteredAudioFiles(audioFiles);
+        } else {
+            // Filter based on selected sentiment type
+            const filteredData = audioFiles.filter(
+                (item) => item.sentiment_type === selectedValue
+            );
+            setFilteredAudioFiles(filteredData);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.subContainer}>
@@ -347,7 +361,21 @@ const AudioUpload = () => {
                     <Icon name="add" size={24} color="#fff" />
                 </TouchableOpacity>
             </View>
-
+            {/* Sentiment Filter */}
+            <View style={styles.filterContainer}>
+                <Text style={styles.labelFilter}>Filter by Sentiment:</Text>
+                <View style={styles.pickerWrapper}>
+                    <Picker
+                        selectedValue={selectedSentiment}
+                        onValueChange={handleSentimentChange}
+                        style={styles.picker}>
+                        <Picker.Item label="All" value="All" style={styles.pickerValue} />
+                        {sentiments.map((sentiment, index) => (
+                            <Picker.Item key={index} label={sentiment.sentiment_type} value={sentiment.sentiment_type} style={styles.pickerValue} />
+                        ))}
+                    </Picker>
+                </View>
+            </View>
             <View style={styles.tableHeader}>
                 <Text style={[styles.headerCell, styles.titleHeader]}>Title</Text>
                 <Text style={[styles.headerCell, styles.sentimentheader]}>Sentiment</Text>
@@ -356,7 +384,7 @@ const AudioUpload = () => {
             </View>
             <View style={styles.fixedListContainer}>
                 <FlatList
-                    data={audioFiles}
+                    data={filteredAudioFiles}
                     renderItem={renderAudioItem}
                     keyExtractor={(item) => item.id.toString()}
                     style={styles.table}
@@ -414,14 +442,13 @@ const AudioUpload = () => {
                             <Text style={styles.label}>Select Sentiment:</Text>
                             <View style={styles.pickerWrapper}>
                                 {loading ? (
-                                    <ActivityIndicator size="small" color="#007bff" />
+                                    <ActivityIndicator size="small" color="#029fe4" />
                                 ) : (
                                     <Picker
                                         selectedValue={selectedSentiment}
                                         onValueChange={(itemValue) => setSelectedSentiment(itemValue)}
                                         style={styles.picker}
-                                        mode="dropdown"
-                                    >
+                                        mode="dropdown" >
                                         {sentiments.map((sentiment, index) => (
                                             <Picker.Item
                                                 key={index}
@@ -480,7 +507,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
     },
     fixedListContainer: {
-        height: 200, 
+        height: 300,
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
@@ -493,7 +520,7 @@ const styles = StyleSheet.create({
         width: '30%',
     },
     createButton: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#029fe4',
         padding: 5,
         width: '10%',
         borderRadius: 5,
@@ -531,23 +558,15 @@ const styles = StyleSheet.create({
         flex: 2.5,
     },
     actionsHeader: {
-        flex:2,
+        flex: 2,
         textAlign: 'center',
     },
     cell: {
-        paddingHorizontal: 8,
+        paddingHorizontal: 7,
         textAlign: 'left',
         fontSize: 11, // Reduced font size for table data
     },
-    titleCell: {
-        flex: 1.5,
-    },
-    sentimentCell: {
-        flex: 2,
-    },
-    descriptionCell: {
-        flex: 2.5,
-    },
+
     actionsCell: {
         flex: 2,
         flexDirection: 'row',
@@ -606,7 +625,7 @@ const styles = StyleSheet.create({
         gap: 15,
     },
     button: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#029fe4',
         padding: 10,
         borderRadius: 5,
         marginVertical: 5,
@@ -709,13 +728,25 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         overflow: 'hidden',
         width: 190,
+        height: 30,
         justifyContent: 'center',
     },
     picker: {
         width: '100%',
     },
     pickerValue: {
+        fontSize: 11,
+    },
+    filterContainer: {
+        flexDirection: 'row', // Arrange label and picker in one line
+        alignItems: 'center', // Align items vertically
+        marginBottom: 10,
+        width: '80%',
+    },
+    labelFilter: {
         fontSize: 12,
+        fontWeight: 'bold',
+        marginRight: 10, // Add spacing between label and picker
     }
 });
 

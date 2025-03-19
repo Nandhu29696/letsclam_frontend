@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007bff',
+    color: '#029fe4',
   },
 });
 

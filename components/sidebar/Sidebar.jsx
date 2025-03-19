@@ -26,7 +26,7 @@ const SidebarScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.hamburgerMenu} onPress={toggleSidebar}>
-        <Ionicons name="menu-outline" size={32} color="black" />
+        <Ionicons name="menu-outline" size={30} color="black" />
       </TouchableOpacity>
 
       {isSidebarVisible && (
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   hamburgerMenu: {
     position: 'absolute',
-    top: 40,
+    top: 70,
     left: 20,
     zIndex: 1,
   },

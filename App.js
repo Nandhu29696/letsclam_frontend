@@ -34,7 +34,16 @@ const App = () => {
   return (
     <AppProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Splash">
+        <Stack.Navigator initialRouteName="Splash"
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: "#e5194a", // Set background color for all screens
+            },
+            headerTintColor: "#fff", // White text/icons
+            headerTitleStyle: {
+              fontWeight: "bold",
+            },
+          }}>
           <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Login" component={LoginPage} options={{ headerShown: false }} />

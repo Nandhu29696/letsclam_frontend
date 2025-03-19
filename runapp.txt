@@ -1,5 +1,6 @@
 #install node modules
 npm install
+npm i expo-cli
 
 #run the application
 npm start --clear-cache

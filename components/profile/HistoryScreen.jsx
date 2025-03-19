@@ -60,7 +60,7 @@ const HistoryScreen = () => {
         <View style={styles.container}>
             <Text style={styles.title}>Sentiment Analysis History</Text>
             {loading ? (
-                <ActivityIndicator size="large" color="#007bff" />
+                <ActivityIndicator size="large" color="#029fe4" />
             ) : (
                 <View style={Platform.OS === 'web' ? styles.scrollContainer : styles.fixedListContainer}>
                     <FlatList
