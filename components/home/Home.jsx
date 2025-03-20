@@ -103,7 +103,7 @@ const HomeScreen = () => {
 
     const startRecording = async () => {
         Toast.show({
-            text1: 'Starts Recording..',
+            text1: 'Recording started..',
             type: 'success',
         });
         try {
@@ -115,6 +115,8 @@ const HomeScreen = () => {
             await cleanupRecording();
             setIsRecording(true);
             const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
+            console.log('newRecording', newRecording);
+
             setRecording(newRecording);
             const id = setInterval(async () => {
                 //console.log('1-minute interval reached. Stopping recording...');
@@ -122,6 +124,8 @@ const HomeScreen = () => {
             }, 60000);
             setIntervalId(id);
         } catch (error) {
+            console.log(error);
+            
             setIsRecording(false);
         }
     };
