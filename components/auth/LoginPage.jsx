@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import {
     View, Text, TextInput, Alert, StyleSheet,
-    Image, TouchableOpacity, KeyboardAvoidingView, Platform
+    Image, TouchableOpacity, KeyboardAvoidingView, Platform, Modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
@@ -9,10 +9,10 @@ import { AppContext } from '../../AppContext';
 import axios from 'axios';
 
 const LoginPage = ({ navigation }) => {
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { setUser, setIsLoggedIn, apiUrl } = useContext(AppContext);
+    const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
 
     const handleLoginPage = async (event) => {
         event.preventDefault();
@@ -25,21 +25,22 @@ const LoginPage = ({ navigation }) => {
                 'Content-Type': 'application/json',
             },
         }).then(async (res) => {
-            // console.log('res', res);
             const data = res.data;
-            // Toast.show({ text1: 'Login Successful', text2: 'Welcome back!', type: 'success' });
             await AsyncStorage.setItem('userProfile', JSON.stringify(data));
             setUser(data);
             setIsLoggedIn(true);
-            navigation.replace('Home');
+
+            // Show the modal for 3 seconds
+            setIsModalVisible(true);
+            setTimeout(() => {
+                setIsModalVisible(false); // Hide the modal after 3 seconds
+                navigation.replace('Home'); // Navigate to Home page
+            }, 3000);
         })
             .catch((error) => {
                 const errors = error.response?.data?.errors;
                 if (errors) {
                     const firstError = errors.non_field_error ? errors.non_field_error[0] : 'An unknown error occurred.';
-                    // Toast.show({ text1: 'Login Failed', text2: firstError, type: 'error' });
-                } else {
-                    // Toast.show({ text1: 'Error', text2: 'Failed to Login. Please check your network connection.', type: 'error' });
                 }
             });
     };
@@ -81,6 +82,23 @@ const LoginPage = ({ navigation }) => {
                     <Text style={styles.linkText}>Register here</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Modal for showing the note */}
+            <Modal
+                visible={isModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <Text style={styles.modalText}>
+                            “Allow LetsCalm to listen and create a temporary recording which can be stored and/or deleted based on your preferred setting after emotion is detected using our proprietary algorithm.”
+                        </Text>
+                    </View>
+                </View>
+            </Modal>
+
         </KeyboardAvoidingView>
     );
 };
@@ -135,6 +153,42 @@ const styles = StyleSheet.create({
     linkText: {
         color: '#029fe4',
         fontWeight: 'bold',
+    },
+
+    // Modal styles
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Dark transparent background
+    },
+    // Modal Box (content)
+    modalBox: {
+        width: '85%',
+        backgroundColor: '#ffffff',
+        borderRadius: 15,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5, // For Android shadow
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    // Modal Text
+    modalText: {
+        fontSize: 16,
+        color: '#333',
+        textAlign: 'center',
+        lineHeight: 24,
+        fontWeight: '500', // Medium weight for readability
     },
 });
 

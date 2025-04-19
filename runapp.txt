@@ -19,3 +19,7 @@ npx expo install --fix
 
 npm outdated
 npm update
+
+
+#install and setup eas-cli
+npm install -g eas-cli

@@ -56,7 +56,6 @@ const HomeScreen = () => {
     const refreshPage = () => {
         fetchAudioFiles();
         fetchvideoFiles();
-        startRecording();
     };
 
     useFocusEffect(
@@ -64,15 +63,6 @@ const HomeScreen = () => {
             refreshPage();
         }, [])
     );
-
-    // useFocusEffect(
-    //     useCallback(() => {
-    //         return () => {
-    //             if (isRecording) stopRecording();
-    //             if (isLoaded) stopSound();
-    //         };
-    //     }, [isRecording, isLoaded])
-    // );
 
     useEffect(() => {
         const initializeRecording = async () => {
@@ -121,11 +111,11 @@ const HomeScreen = () => {
             const id = setInterval(async () => {
                 //console.log('1-minute interval reached. Stopping recording...');
                 await handlePauseAndSave(newRecording);
-            }, 60000);
+            }, 30000);
             setIntervalId(id);
         } catch (error) {
             console.log(error);
-            
+
             setIsRecording(false);
         }
     };
@@ -195,7 +185,7 @@ const HomeScreen = () => {
                     const newIntervalId = setInterval(async () => {
                         //console.log('1-minute interval reached. Stopping recording...');
                         handlePauseAndSave(newRecording);
-                    }, 60000);
+                    }, 30000);
                     setIntervalId(newIntervalId);
                 }, 500);
             } else {
@@ -641,7 +631,7 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         padding: 20,
-        paddingTop: 70,
+        paddingTop: 100,
         width: '100%',
         backgroundColor: '#eeeee4',
     },
@@ -655,8 +645,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         textAlign: 'left',
-        marginBottom: 5,
-        paddingLeft: 30
+        marginBottom: 5
     },
     historyButton: {
         flexDirection: 'row',
