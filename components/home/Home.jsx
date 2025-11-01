@@ -293,10 +293,10 @@ const HomeScreen = () => {
 
     useEffect(() => {
         return () => {
-            if (sound.current) {
-                sound.current.unloadAsync().catch((err) =>
-                    console.error('Error unloading sound on unmount:', err)
-                );
+            if (sound.current && typeof sound.current.unloadAsync === "function") {
+                sound.current.unloadAsync().catch((err) => {
+                    console.error("Error unloading sound on unmount:", err);
+                });
             }
             if (videoRef.current) {
                 videoRef.current.unloadAsync().catch((err) =>
@@ -371,34 +371,43 @@ const HomeScreen = () => {
 
     const stopSound = async () => {
         try {
-            if (Platform.OS === 'web') {
-                if (webAudio.current) {
-                    webAudio.current.pause();
-                    webAudio.current.currentTime = 0;
-                    URL.revokeObjectURL(webAudio.current.src);
-                    webAudio.current = null;
-                    setIsLoaded(false);
-                    setPlayingAudioId(null);
-                } else {
-                    console.log('No web audio instance to stop.');
-                }
+            if (Platform.OS === "web") {
+                // Web: just reset state
+                setPlayingAudioId(null);
+                setIsLoaded(false);
                 return;
             }
 
+            // Native only
             if (sound.current) {
-                const status = await sound.current.getStatusAsync();
-                if (status.isLoaded && status.isPlaying) {
-                    await sound.current.stopAsync();
+                const currentSound = sound.current;
+
+                // Check if the sound object supports these methods
+                if (typeof currentSound.getStatusAsync === "function") {
+                    const status = await currentSound.getStatusAsync().catch(() => null);
+
+                    if (status?.isLoaded) {
+                        if (status.isPlaying && typeof currentSound.stopAsync === "function") {
+                            await currentSound.stopAsync().catch(() => null);
+                        }
+
+                        if (typeof currentSound.unloadAsync === "function") {
+                            await currentSound.unloadAsync().catch(() => null);
+                        }
+                    }
                 }
-                await sound.current.unloadAsync();
+
+                // Always clean up
                 sound.current = null;
-                setIsLoaded(false);
-                setPlayingAudioId(null);
             }
+
+            setPlayingAudioId(null);
+            setIsLoaded(false);
         } catch (error) {
-            console.log('Error stopping sound:', error);
+            console.log("Error stopping sound safely:", error);
         }
     };
+
 
     const fetchvideoFiles = async () => {
         await axios.get(`${apiUrl}/api/voice/video/all/${user.userID}`, {
