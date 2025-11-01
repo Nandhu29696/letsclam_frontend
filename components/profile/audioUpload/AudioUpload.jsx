@@ -1,6 +1,6 @@
 import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
     Alert, Switch, Platform,
     FlatList,
@@ -20,8 +20,8 @@ import * as FileSystem from 'expo-file-system'
 import Toast from 'react-native-toast-message';
 
 const AudioUpload = () => {
-    const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
-    const token = user.token.access;
+    const { user, userToken, setIsLoggedIn, apiUrl } = useContext(AppContext);
+    const token = userToken;
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState(null);
@@ -30,10 +30,11 @@ const AudioUpload = () => {
     const [sentiments, setSentiments] = useState([]);
     const [editingAudioId, setEditingAudioId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
-    const sound = React.useRef(new Audio.Sound());
+    const sound = useRef(null);
+    const webAudio = useRef(null);
     const [playingAudioId, setPlayingAudioId] = useState(null); // State to track the currently playing audio
     const [isGeneric, setIsGeneric] = useState(false);
-    const [selectedSentiment, setSelectedSentiment] = useState('');
+    const [selectedSentiment, setSelectedSentiment] = useState('happy');
     const [filterSentiment, setfilterSentiment] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -155,77 +156,6 @@ const AudioUpload = () => {
         }
     };
 
-    const playSound = async (audioPath, id) => {
-        const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-        //console.log('audioPath', audioPath);
-
-        let payload = {
-            file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`,
-        };
-
-        const requestOptions = {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(payload),
-        };
-
-        try {
-            // Clear the cache file if it exists
-            const fileInfo = await FileSystem.getInfoAsync(cacheFilePath);
-            if (fileInfo.exists) {
-                await FileSystem.deleteAsync(cacheFilePath, { idempotent: true });
-            }
-
-            // Fetch the audio file from the API
-            const response = await fetch(`${apiUrl}/api/voice/audio/play`, requestOptions);
-            if (response.ok) {
-                const blob = await response.blob();
-
-                // Convert blob to base64 and save as a new file
-                const fileReader = new FileReader();
-                fileReader.onload = async () => {
-                    const base64data = fileReader.result.split(',')[1];
-                    await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    });
-
-                    // Unload any previously loaded sound
-                    if (isLoaded) {
-                        try {
-                            await sound.current.stopAsync();
-                            await sound.current.unloadAsync();
-                            setIsLoaded(false);
-                        } catch (err) {
-                            // //console.error('Error unloading sound:', err);
-                        }
-                    }
-
-                    // Reset the sound instance (optional, for safe measure)
-                    sound.current = new Audio.Sound();
-
-                    // Load and play the new sound
-                    try {
-                        await sound.current.loadAsync({ uri: cacheFilePath });
-                        await sound.current.playAsync();
-                        setIsLoaded(true);
-                        setPlayingAudioId(id);
-                    } catch (err) {
-                        // //console.error('Error playing sound:', err);
-                    }
-                };
-
-                fileReader.readAsDataURL(blob);
-            } else {
-                // //console.error('Error fetching audio file:', response.status);
-            }
-        } catch (error) {
-            // //console.error('Error playing sound:', error);
-        }
-    };
-
     useEffect(() => {
         return () => {
             sound.current.unloadAsync().catch((err) =>
@@ -233,15 +163,98 @@ const AudioUpload = () => {
             );
         };
     }, []);
-    const stopSound = async () => {
+
+    const playSound = async (audioPath, id) => {
         try {
-            await sound.current.stopAsync();
-            setIsLoaded(false);
-            setPlayingAudioId(null); // Reset the currently playing audio ID
+            const payload = { file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}` };
+            const response = await fetch(`${apiUrl}/api/voice/audio/play`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
+
+            // --- ✅ WEB ---
+            if (Platform.OS === 'web') {
+                const blob = await response.blob();
+                const audioURL = URL.createObjectURL(blob);
+                if (webAudio.current) {
+                    webAudio.current.pause();
+                    webAudio.current.currentTime = 0;
+                    URL.revokeObjectURL(webAudio.current.src);
+                }
+                webAudio.current = new window.Audio(audioURL);
+                webAudio.current.play();
+                webAudio.current.onended = () => URL.revokeObjectURL(audioURL);
+                setIsLoaded(true);
+                setPlayingAudioId(id);
+                return;
+            }
+
+            // --- ✅ ANDROID / iOS ---
+            const blob = await response.blob();
+            const fileReader = new FileReader();
+
+            fileReader.onload = async () => {
+                const base64data = fileReader.result.split(',')[1];
+                const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
+                await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+
+                if (sound.current) {
+                    await sound.current.unloadAsync();
+                }
+
+                sound.current = new Audio.Sound();
+                await sound.current.loadAsync({ uri: cacheFilePath });
+                await sound.current.playAsync();
+
+                setIsLoaded(true);
+                setPlayingAudioId(id);
+            };
+
+            fileReader.readAsDataURL(blob);
         } catch (error) {
-            // //console.error("Error stopping sound:", error);
+            console.log('Error playing sound:', error);
         }
     };
+
+    const stopSound = async () => {
+        try {
+            if (Platform.OS === 'web') {
+                if (webAudio.current) {
+                    webAudio.current.pause();
+                    webAudio.current.currentTime = 0;
+                    URL.revokeObjectURL(webAudio.current.src);
+                    webAudio.current = null;
+                    setIsLoaded(false);
+                    setPlayingAudioId(null);
+                } else {
+                    console.log('No web audio instance to stop.');
+                }
+                return;
+            }
+
+            if (sound.current) {
+                const status = await sound.current.getStatusAsync();
+                if (status.isLoaded && status.isPlaying) {
+                    await sound.current.stopAsync();
+                }
+                await sound.current.unloadAsync();
+                sound.current = null;
+                setIsLoaded(false);
+                setPlayingAudioId(null);
+            }
+        } catch (error) {
+            console.log('Error stopping sound:', error);
+        }
+    };
+
     const renderAudioItem = ({ item }) => (
         <View style={styles.tableRow}>
             <Text style={[styles.cell, styles.titleHeader]}>{item.title}</Text>
@@ -722,32 +735,41 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
     },
-    pickerWrapper: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        overflow: 'hidden',
-        width: 190,
-        height: 30,
-        justifyContent: 'center',
-    },
-    picker: {
-        width: '100%',
-    },
-    pickerValue: {
-        fontSize: 11,
-    },
     filterContainer: {
-        flexDirection: 'row', // Arrange label and picker in one line
-        alignItems: 'center', // Align items vertically
-        marginBottom: 10,
-        width: '80%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 8,
+        paddingHorizontal: 16,
     },
     labelFilter: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#333',
+        marginRight: 10,
+    },
+    pickerWrapper: {
+        width: 200, // reduced width
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        overflow: 'hidden',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    picker: {
+        height: 30, // reduced height
+        width: '100%',
+        color: '#333',
         fontSize: 12,
-        fontWeight: 'bold',
-        marginRight: 10, // Add spacing between label and picker
-    }
+        paddingHorizontal: 6,
+    },
+    pickerValue: {
+        fontSize: 14,
+    },
 });
 
 export default AudioUpload;

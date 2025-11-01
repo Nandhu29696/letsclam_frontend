@@ -9,16 +9,18 @@ import { MaterialIcons } from 'react-native-vector-icons'; // Import MaterialIco
 
 const Tab = createMaterialTopTabNavigator();
 const ProfileScreen = ({ navigation }) => {
+    
+
+    const { user, userToken, apiUrl } = useContext(AppContext);
+    const token = userToken
+
     const userdet = {
-        name: 'Nandhu',
-        email: 'nandhu2@gmail.com',
+        name: user.name,
+        email: user.email,
         phone: '+1 234 567 890',
         country: 'United States',
         profilePicture: 'https://images.pexels.com/photos/1704488/pexels-photo-1704488.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500',
     };
-
-    const { user, apiUrl } = useContext(AppContext);
-    const token = user.token.access;
 
     const [userfile, setUserfile] = useState(userdet)
     const getUserDetails = async () => {
@@ -72,8 +74,8 @@ const ProfileScreen = ({ navigation }) => {
                     </View>
 
                     <Text style={styles.userInfo}>Email: {userfile.email}</Text>
-                    <Text style={styles.userInfo}>Phone: {userdet.phone}</Text>
-                    <Text style={styles.userInfo}>Country: {userdet.country}</Text>
+                    {/* <Text style={styles.userInfo}>Phone: {userdet.phone}</Text>
+                    <Text style={styles.userInfo}>Country: {userdet.country}</Text> */}
                 </View>
             </View>
 
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
     historyButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
+        gap: 15,
     },
     historyText: {
         fontSize: 14,

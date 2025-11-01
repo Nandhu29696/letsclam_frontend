@@ -1,40 +1,32 @@
-// AppContext.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useState, useEffect } from 'react';
-// import * as SecureStore from 'expo-secure-store';
-
-// Store the API URL securely
-// SecureStore.setItemAsync('API_URL', 'https://54.196.65.220');
-// SecureStore.setItemAsync('API_URL', 'http://192.168.0.135:8000');
-
-// const apiUrl = "https://www.jagoindia.in";
-const apiUrl = "http://192.168.0.135:8000";
-//console.log('API URL:', apiUrl);
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(null);  // Store user data here
+  const [user, setUser] = useState(null);
+  const [userToken, setUserToken] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // const [apiUrl, setAPI] = useState('')
+  const [loading, setLoading] = useState(true);
+  // const apiUrl = "http://192.168.0.135:8000";
+  const apiUrl = "https://www.jagoindia.in";
 
-  // async function getApiUrl() {
-  //   const apiget = await SecureStore.getItemAsync('API_URL');
-  //   //console.log('apiget', apiget);
-
-  //   setAPI(apiget);
-  // }
-
-  // Simulate loading user data after login
   const loadUserData = async () => {
     try {
       const savedUser = await AsyncStorage.getItem('user');
-      if (savedUser) {
+      const savedUserToken = await AsyncStorage.getItem('accessToken');
+
+      if (savedUser && savedUserToken) {
         setUser(JSON.parse(savedUser));
+        setUserToken(savedUserToken);
         setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
       }
     } catch (error) {
-      //console.error('Failed to load user data:', error);
+      console.error('Failed to load user data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,8 +34,43 @@ export const AppProvider = ({ children }) => {
     loadUserData();
   }, []);
 
+  // ✅ Call this after login success
+  const login = async (userData, token) => {
+    try {
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      await AsyncStorage.setItem('accessToken', token);
+      setUser(userData);
+      setUserToken(token);
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.error('Failed to save login data:', error);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('accessToken');
+      setUser(null);
+      setUserToken(null);
+      setIsLoggedIn(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
-    <AppContext.Provider value={{ user, setUser, isLoggedIn, setIsLoggedIn, apiUrl }}>
+    <AppContext.Provider
+      value={{
+        user,
+        userToken,
+        apiUrl,
+        isLoggedIn,
+        loading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

@@ -6,8 +6,8 @@ import DateFormatter from '../utils/DateFormatter';
 const HistoryScreen = () => {
     const [historyData, setHistoryData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const { user, apiUrl } = useContext(AppContext);
-    const token = user.token.access;
+    const { user, userToken, apiUrl } = useContext(AppContext);
+    const token = userToken;
 
     useEffect(() => {
         fetchSentimentResults();

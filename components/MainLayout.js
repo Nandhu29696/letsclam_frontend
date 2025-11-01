@@ -1,4 +1,4 @@
-import React, { useContext, useState, useCallback  } from 'react';
+import React, { useContext, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TouchableWithoutFeedback, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +23,8 @@ const MainLayout = ({ children, navigation }) => {
   };
 
   const navigateToScreen = (screen) => {
+    console.log('screen', screen);
+
     if (screen === 'Logout') {
       closeSidebar();
       setModalVisible(true);
@@ -41,19 +43,24 @@ const MainLayout = ({ children, navigation }) => {
   };
   const handleLogout = async () => {
     try {
-      setIsLoggedIn(false);
-      await AsyncStorage.removeItem('userProfile');
+      await AsyncStorage.multiRemove(['user', 'accessToken', 'refreshToken']);
       Toast.show({
         text1: 'Logout Successful',
         text2: 'You have been logged out.',
         type: 'success',
       });
       setModalVisible(false);
-      navigation.replace('Login');
+      window.location.reload();
     } catch (error) {
-      //console.error('Error during logout:', error);
+      console.error('Error during logout:', error);
+      Toast.show({
+        text1: 'Logout Failed',
+        text2: 'Please try again.',
+        type: 'error',
+      });
     }
   };
+
 
   const menuOptions = [
     { title: 'Home', icon: 'home', screen: 'Home' },

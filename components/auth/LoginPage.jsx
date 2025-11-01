@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import {
-    View, Text, TextInput, Alert, StyleSheet,
+    View, Text, TextInput, StyleSheet,
     Image, TouchableOpacity, KeyboardAvoidingView, Platform, Modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,95 +11,164 @@ import axios from 'axios';
 const LoginPage = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { setUser, setIsLoggedIn, apiUrl } = useContext(AppContext);
-    const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
+    const { login, apiUrl } = useContext(AppContext);
 
-    const handleLoginPage = async (event) => {
-        event.preventDefault();
-        let loginData = {
-            email: email,
-            password: password,
-        };
-        await axios.post(`${apiUrl}/api/user/login`, loginData, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        }).then(async (res) => {
-            const data = res.data;
-            await AsyncStorage.setItem('userProfile', JSON.stringify(data));
-            setUser(data);
-            setIsLoggedIn(true);
+    const [isOtpModalVisible, setIsOtpModalVisible] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-            // Show the modal for 3 seconds
-            setIsModalVisible(true);
-            setTimeout(() => {
-                setIsModalVisible(false); // Hide the modal after 3 seconds
-                navigation.replace('Home'); // Navigate to Home page
-            }, 3000);
-        })
-            .catch((error) => {
-                const errors = error.response?.data?.errors;
-                if (errors) {
-                    const firstError = errors.non_field_error ? errors.non_field_error[0] : 'An unknown error occurred.';
-                }
+    // Step 1: Handle login (send OTP)
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Toast.show({ type: 'error', text1: 'Please enter email and password' });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const res = await axios.post(`${apiUrl}/api/user/login`, { email, password }, {
+                headers: { 'Content-Type': 'application/json' }
             });
+            Toast.show({
+                type: 'success',
+                text1: 'OTP Sent!',
+                text2: 'Please check your email for the OTP.'
+            });
+
+            setIsOtpModalVisible(true); // show OTP modal
+        } catch (error) {
+            const message = error.response?.data?.detail || 'Login failed. Please try again.';
+            Toast.show({ type: 'error', text1: message });
+            console.log('Login error:', error.response?.data || error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Step 2: Verify OTP and get tokens
+    const handleVerifyOtp = async () => {
+
+        if (!otp) {
+            Toast.show({ type: 'error', text1: 'Please enter OTP' });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const res = await axios.post(`${apiUrl}/api/user/login/verify-otp/`, {
+                email,
+                otp,
+                purpose: 'login'
+            });
+            const { access, refresh, user } = res.data;
+
+            await AsyncStorage.setItem('accessToken', access);
+            await AsyncStorage.setItem('refreshToken', refresh);
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+            Toast.show({
+                type: 'success',
+                text1: 'Login Successful!',
+            });
+
+            setIsOtpModalVisible(false);
+            // ✅ Use context login method
+            await login(user, access);
+
+            // ✅ Navigate immediately (context will re-render)
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+            });
+        } catch (error) {
+            console.log('OTP verify error:', error.response?.data || error.message);
+            const message = error.response?.data?.detail || 'Invalid OTP. Please try again.';
+            Toast.show({ type: 'error', text1: message });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <Image
-                source={require('../../assets/splashimage.jpg')}
-                style={styles.logo}
-            />
-            <Text style={styles.title}>Welcome Back</Text>
+        <>
+            <KeyboardAvoidingView
+                style={styles.container}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <Image
+                    source={require('../../assets/splashimage.jpg')}
+                    style={styles.logo}
+                />
+                <Text style={styles.title}>Welcome Back</Text>
 
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-            />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                />
 
-            <TouchableOpacity style={styles.button} onPress={handleLoginPage}>
-                <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
-
-            <View style={styles.footer}>
-                <Text>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                    <Text style={styles.linkText}>Register here</Text>
+                <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={isLoading}>
+                    <Text style={styles.buttonText}>
+                        {isLoading ? 'Please wait...' : 'Login'}
+                    </Text>
                 </TouchableOpacity>
-            </View>
 
-            {/* Modal for showing the note */}
+                <View style={styles.footer}>
+                    <Text>Don't have an account? </Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                        <Text style={styles.linkText}>Register here</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <Toast />
+            </KeyboardAvoidingView>
+
+            {/* ✅ OTP Modal outside KeyboardAvoidingView */}
             <Modal
-                visible={isModalVisible}
+                visible={isOtpModalVisible}
                 transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsModalVisible(false)}
+                animationType="slide"
+                onRequestClose={() => setIsOtpModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
+                <View style={styles.modalOverlay} pointerEvents="box-none">
                     <View style={styles.modalBox}>
-                        <Text style={styles.modalText}>
-                            “Allow LetsCalm to listen and create a temporary recording which can be stored and/or deleted based on your preferred setting after emotion is detected using our proprietary algorithm.”
-                        </Text>
+                        <Text style={styles.modalTitle}>Enter OTP</Text>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter OTP"
+                            keyboardType="numeric"
+                            value={otp}
+                            onChangeText={setOtp}
+                        />
+
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={() => {
+                                 handleVerifyOtp();
+                            }}
+                            disabled={isLoading}
+                        >
+                            <Text style={styles.buttonText}>
+                                {isLoading ? 'Verifying...' : 'Verify OTP'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setIsOtpModalVisible(false)}>
+                            <Text style={styles.linkText}>Cancel</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
-
-        </KeyboardAvoidingView>
+        </>
     );
 };
 
@@ -153,42 +222,26 @@ const styles = StyleSheet.create({
     linkText: {
         color: '#029fe4',
         fontWeight: 'bold',
-    },
-
-    // Modal styles
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        marginTop: 5,
     },
     modalOverlay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Dark transparent background
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
     },
-    // Modal Box (content)
     modalBox: {
         width: '85%',
         backgroundColor: '#ffffff',
         borderRadius: 15,
         padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5, // For Android shadow
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Modal Text
-    modalText: {
-        fontSize: 16,
-        color: '#333',
-        textAlign: 'center',
-        lineHeight: 24,
-        fontWeight: '500', // Medium weight for readability
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
     },
 });
 

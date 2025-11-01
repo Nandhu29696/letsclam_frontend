@@ -13,8 +13,8 @@ import { Picker } from '@react-native-picker/picker';
 
 
 const VideoUpload = () => {
-    const { user, setIsLoggedIn, apiUrl } = useContext(AppContext);
-    const token = user.token.access;
+    const { user, userToken, setIsLoggedIn, apiUrl } = useContext(AppContext);
+    const token = userToken;
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState(null);

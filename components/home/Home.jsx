@@ -13,9 +13,11 @@ import VideoPlayer from './VideoScreen';
 
 const HomeScreen = () => {
 
-    const { user, apiUrl } = useContext(AppContext);
-    const token = user.token.access;
-    const sound = useRef(new Audio.Sound());
+    const { user, userToken, apiUrl } = useContext(AppContext);
+
+    const token = userToken;
+    // const sound = useRef(new Audio.Sound());
+
     const [playingAudioId, setPlayingAudioId] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const navigation = useNavigation();
@@ -269,7 +271,7 @@ const HomeScreen = () => {
     };
 
     const fetchAudioFiles = async () => {
-        await axios.get(`${apiUrl}/api/voice/audio/all/${user.userID}`, {
+        await axios.get(`${apiUrl}/api/voice/audio/all/${user.id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -289,79 +291,6 @@ const HomeScreen = () => {
         });
     };
 
-    const playSound = async (audioPath, id) => {
-        const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
-        const payload = { file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}`, };
-        const requestOptions = {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(payload),
-        };
-
-        try {
-            const response = await fetch(`${apiUrl}/api/voice/audio/play`, requestOptions);
-            if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
-
-            if (Platform.OS === 'web') {
-                const blob = await response.blob();
-                const audioURL = URL.createObjectURL(blob);
-                const audio = new window.Audio(audioURL);  // Ensure window.Audio is used
-                audio.load();
-                await audio.play();
-                setIsLoaded(true);
-                setPlayingAudioId(id);
-                // Cleanup
-                audio.onended = () => URL.revokeObjectURL(audioURL);
-            } else {
-                if (response.ok) {
-                    const blob = await response.blob();
-
-                    // Convert blob to base64 and save as a new file
-                    const fileReader = new FileReader();
-                    fileReader.onload = async () => {
-                        const base64data = fileReader.result.split(',')[1];
-                        await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
-                            encoding: FileSystem.EncodingType.Base64,
-                        });
-
-                        // Unload any previously loaded sound
-                        if (isLoaded) {
-                            try {
-                                await sound.current.stopAsync();
-                                await sound.current.unloadAsync();
-                                setIsLoaded(false);
-                            } catch (err) {
-                                //console.error('Error unloading sound:', err);
-                            }
-                        }
-
-                        // Reset the sound instance (optional, for safe measure)
-                        sound.current = new Audio.Sound();
-
-                        // Load and play the new sound
-                        try {
-                            await sound.current.loadAsync({ uri: cacheFilePath });
-                            await sound.current.playAsync();
-                            setIsLoaded(true);
-                            setPlayingAudioId(id);
-                        } catch (err) {
-                            //console.error('Error playing sound:', err);
-                        }
-                    };
-
-                    fileReader.readAsDataURL(blob);
-                } else {
-                    //console.error('Error fetching audio file:', response.status);
-                }
-            }
-        } catch (error) {
-            //console.error('Error playing sound:', error);
-        }
-    };
-
     useEffect(() => {
         return () => {
             if (sound.current) {
@@ -377,23 +306,97 @@ const HomeScreen = () => {
         };
     }, []);
 
+    const sound = useRef(null);
+    const webAudio = useRef(null);
+
+    const playSound = async (audioPath, id) => {
+        try {
+            const payload = { file_path: audioPath.startsWith('audio/') ? audioPath : `audio/${audioPath}` };
+            const response = await fetch(`${apiUrl}/api/voice/audio/play`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
+
+            // --- ✅ WEB ---
+            if (Platform.OS === 'web') {
+                const blob = await response.blob();
+                const audioURL = URL.createObjectURL(blob);
+                if (webAudio.current) {
+                    webAudio.current.pause();
+                    webAudio.current.currentTime = 0;
+                    URL.revokeObjectURL(webAudio.current.src);
+                }
+                webAudio.current = new window.Audio(audioURL);
+                webAudio.current.play();
+                webAudio.current.onended = () => URL.revokeObjectURL(audioURL);
+                setIsLoaded(true);
+                setPlayingAudioId(id);
+                return;
+            }
+
+            // --- ✅ ANDROID / iOS ---
+            const blob = await response.blob();
+            const fileReader = new FileReader();
+
+            fileReader.onload = async () => {
+                const base64data = fileReader.result.split(',')[1];
+                const cacheFilePath = `${FileSystem.cacheDirectory}temp-audio.mp3`;
+                await FileSystem.writeAsStringAsync(cacheFilePath, base64data, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+
+                if (sound.current) {
+                    await sound.current.unloadAsync();
+                }
+
+                sound.current = new Audio.Sound();
+                await sound.current.loadAsync({ uri: cacheFilePath });
+                await sound.current.playAsync();
+
+                setIsLoaded(true);
+                setPlayingAudioId(id);
+            };
+
+            fileReader.readAsDataURL(blob);
+        } catch (error) {
+            console.log('Error playing sound:', error);
+        }
+    };
+
     const stopSound = async () => {
         try {
-            const status = await sound.current.getStatusAsync();
-            // console.log('status', status);
-            // console.log('isLoaded', isLoaded);
-            // console.log('sound.current', sound.current);
-
-            if (isLoaded && sound.current) {
-                await sound.current.stopAsync();
+            if (Platform.OS === 'web') {
+                if (webAudio.current) {
+                    webAudio.current.pause();
+                    webAudio.current.currentTime = 0;
+                    URL.revokeObjectURL(webAudio.current.src);
+                    webAudio.current = null;
+                    setIsLoaded(false);
+                    setPlayingAudioId(null);
+                } else {
+                    console.log('No web audio instance to stop.');
+                }
+                return;
             }
-            await sound.current.unloadAsync();
-            sound.current = null; // Reset sound instance
-            setIsLoaded(false);
 
-            setPlayingAudioId(null);
+            if (sound.current) {
+                const status = await sound.current.getStatusAsync();
+                if (status.isLoaded && status.isPlaying) {
+                    await sound.current.stopAsync();
+                }
+                await sound.current.unloadAsync();
+                sound.current = null;
+                setIsLoaded(false);
+                setPlayingAudioId(null);
+            }
         } catch (error) {
-            // console.error("Error stopping sound:", error);
+            console.log('Error stopping sound:', error);
         }
     };
 
@@ -521,6 +524,7 @@ const HomeScreen = () => {
                     style={styles.iconButton}
                 />
             </View>
+
         </View>
     );
 
@@ -625,7 +629,9 @@ const HomeScreen = () => {
         </View >
 
     );
+    return { playSound, stopSound, isLoaded, playingAudioId };
 };
+
 
 const styles = StyleSheet.create({
     container: {
