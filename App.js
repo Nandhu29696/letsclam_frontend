@@ -35,17 +35,19 @@ const AppNavigator = () => {
   const { isLoggedIn, loading } = useContext(AppContext);
 
   if (loading) {
-    return <SplashScreen />; // Wait until AsyncStorage is loaded
+    return <SplashScreen />;
   }
 
   return (
-    <Stack.Navigator
+    <Stack.Navigator initialRouteName="Splash"
       screenOptions={{
         headerStyle: { backgroundColor: "#e5194a" },
         headerTintColor: "#fff",
         headerTitleStyle: { fontWeight: "bold" },
       }}
     >
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
       {isLoggedIn ? (
         <>
           <Stack.Screen name="Home" options={{ headerShown: false }}>
@@ -77,7 +79,6 @@ const AppNavigator = () => {
         <>
           <Stack.Screen name="Login" component={LoginPage} options={{ headerShown: false }} />
           <Stack.Screen name="Register" component={RegisterPage} options={{ headerShown: false }} />
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
         </>
       )}
     </Stack.Navigator>

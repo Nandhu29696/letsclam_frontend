@@ -22,7 +22,7 @@ const RegisterPage = ({ navigation }) => {
             password2: password,
             tc: false
         };
-        await axios.post(`${apiUrl}/api/user/register`, payload, {
+        await axios.post(`${apiUrl}/api/user/register/`, payload, {
             headers: {
                 'Content-Type': 'application/json',
             },

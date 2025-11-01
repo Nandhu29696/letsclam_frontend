@@ -26,6 +26,8 @@ const MainLayout = ({ children, navigation }) => {
     console.log('screen', screen);
 
     if (screen === 'Logout') {
+      console.log('screen', screen);
+
       closeSidebar();
       setModalVisible(true);
     } else {
@@ -50,7 +52,7 @@ const MainLayout = ({ children, navigation }) => {
         type: 'success',
       });
       setModalVisible(false);
-      window.location.reload();
+      navigation.replace('Onboarding');
     } catch (error) {
       console.error('Error during logout:', error);
       Toast.show({
