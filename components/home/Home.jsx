@@ -372,17 +372,22 @@ const HomeScreen = () => {
     const stopSound = async () => {
         try {
             if (Platform.OS === "web") {
-                // Web: just reset state
+                if (webAudio.current) {
+                    webAudio.current.pause(); // stop playback
+                    webAudio.current.currentTime = 0; // reset time
+                    URL.revokeObjectURL(webAudio.current.src); // cleanup URL
+                    webAudio.current = null; // clear reference
+                }
+
                 setPlayingAudioId(null);
                 setIsLoaded(false);
                 return;
             }
 
-            // Native only
+            // --- ✅ Native (Android / iOS) ---
             if (sound.current) {
                 const currentSound = sound.current;
 
-                // Check if the sound object supports these methods
                 if (typeof currentSound.getStatusAsync === "function") {
                     const status = await currentSound.getStatusAsync().catch(() => null);
 
@@ -397,7 +402,6 @@ const HomeScreen = () => {
                     }
                 }
 
-                // Always clean up
                 sound.current = null;
             }
 
@@ -407,7 +411,6 @@ const HomeScreen = () => {
             console.log("Error stopping sound safely:", error);
         }
     };
-
 
     const fetchvideoFiles = async () => {
         await axios.get(`${apiUrl}/api/voice/video/all/${user.userID}`, {
@@ -421,10 +424,9 @@ const HomeScreen = () => {
         }).catch((error) => {
             const status = error.response?.status;
             if (status === 401) {
-                // Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
+                Toast.show({ text1: 'Unauthorized', text2: 'Your session has expired. Please log in again.', type: 'error' });
                 navigation.replace('Login');
             } else {
-                // Toast.show({ text1: 'Error', text2: 'Failed to fetch video files. Please try again later.', type: 'error' });
                 setvideoFiles([]);
             }
         });

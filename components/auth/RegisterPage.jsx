@@ -1,11 +1,31 @@
 import React, { useContext, useState } from 'react';
 import {
-    View, Text, TextInput, Button, Alert, StyleSheet,
+    View, Text, TextInput, StyleSheet,
     Image, TouchableOpacity, KeyboardAvoidingView, Platform
 } from 'react-native';
-import Toast from 'react-native-toast-message';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import { AppContext } from '../../AppContext';
 import axios from 'axios';
+
+// ✅ Toast configuration
+const toastConfig = {
+    success: (props) => (
+        <BaseToast
+            {...props}
+            style={{ borderLeftColor: '#22c55e' }}
+            contentContainerStyle={{ paddingHorizontal: 15 }}
+            text1Style={{ fontSize: 15, fontWeight: '600' }}
+        />
+    ),
+    error: (props) => (
+        <ErrorToast
+            {...props}
+            style={{ borderLeftColor: '#ef4444' }}
+            text1Style={{ fontSize: 15, fontWeight: '600' }}
+            text2Style={{ fontSize: 13 }}
+        />
+    ),
+};
 
 const RegisterPage = ({ navigation }) => {
     const [fullname, setFullname] = useState('');
@@ -13,35 +33,63 @@ const RegisterPage = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const { apiUrl } = useContext(AppContext);
 
-    const handleRegister = async (event) => {
-        event.preventDefault();
-        let payload = {
-            name: fullname,
-            email: email,
-            password: password,
-            password2: password,
-            tc: false
-        };
-        await axios.post(`${apiUrl}/api/user/register/`, payload, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        }).then((res) => {
-            const data = res.data;
+    const handleRegister = async () => {
+        if (!fullname || !email || !password) {
             Toast.show({
-                text1: data.message || 'Registration Successful',
-                type: 'success',
+                type: 'error',
+                text1: 'Missing Fields',
+                text2: 'Please enter your name, email, and password.',
+                position: 'top',
             });
+            return;
+        }
+
+        try {
+            const payload = {
+                name: fullname,
+                email,
+                password,
+                password2: password,
+                tc: false,
+            };
+
+            const res = await axios.post(`${apiUrl}/api/user/register/`, payload, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            Toast.show({
+                type: 'success',
+                text1: res.data.message || 'Registration Successful',
+                position: 'top',
+                visibilityTime: 3000,
+            });
+
             navigation.navigate('Login');
-        }).catch((error) => {
-            const errors = error.response?.data?.error;
-            if (errors) {
-                const firstError = Object.values(errors)[0][0];
-                Toast.show({ text1: 'Registration Failed', text2: firstError, type: 'error', });
+        } catch (error) {
+            const errors = error.response?.data;
+            if (errors && typeof errors === 'object') {
+                const firstErrorKey = Object.keys(errors)[0];
+                const firstErrorMsg = Array.isArray(errors[firstErrorKey])
+                    ? errors[firstErrorKey][0]
+                    : errors[firstErrorKey];
+
+                Toast.show({
+                    type: 'error',
+                    text1: 'Registration Failed',
+                    text2: firstErrorMsg || 'Something went wrong.',
+                    position: 'top',
+                    visibilityTime: 4000,
+                });
             } else {
-                Toast.show({ text1: 'Registration Failed', text2: 'Failed to Register. Please check your network connection.', type: 'error', });
+                Toast.show({
+                    type: 'error',
+                    text1: 'Registration Failed',
+                    text2: 'Please check your internet or try again later.',
+                    position: 'top',
+                    visibilityTime: 4000,
+                });
             }
-        });
+        }
     };
 
     return (
@@ -51,8 +99,10 @@ const RegisterPage = ({ navigation }) => {
         >
             <Image
                 source={require('../../assets/splashimage.jpg')}
-                style={styles.logo} />
+                style={styles.logo}
+            />
             <Text style={styles.title}>Create an Account</Text>
+
             <TextInput
                 style={styles.input}
                 placeholder="Full Name"
@@ -85,6 +135,9 @@ const RegisterPage = ({ navigation }) => {
                     <Text style={styles.linkText}>Login</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* ✅ Toast container must be rendered inside component tree */}
+            <Toast config={toastConfig} />
         </KeyboardAvoidingView>
     );
 };

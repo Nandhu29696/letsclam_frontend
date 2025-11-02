@@ -12,12 +12,31 @@ import {
     View, ActivityIndicator
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
 import { AntDesign, FontAwesome } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system'
-import Toast from 'react-native-toast-message';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
+
+// ✅ Toast configuration
+const toastConfig = {
+    success: (props) => (
+        <BaseToast
+            {...props}
+            style={{ borderLeftColor: '#22c55e' }}
+            contentContainerStyle={{ paddingHorizontal: 15 }}
+            text1Style={{ fontSize: 15, fontWeight: '600' }}
+        />
+    ),
+    error: (props) => (
+        <ErrorToast
+            {...props}
+            style={{ borderLeftColor: '#ef4444' }}
+            text1Style={{ fontSize: 15, fontWeight: '600' }}
+            text2Style={{ fontSize: 13 }}
+        />
+    ),
+};
 
 const AudioUpload = () => {
     const { user, userToken, setIsLoggedIn, apiUrl } = useContext(AppContext);
@@ -95,13 +114,20 @@ const AudioUpload = () => {
             // //console.error("Error picking file:", error);
         }
     };
+
     function getFileExtension(filename) {
         const parts = filename.split('.');
         return parts.length > 1 ? parts.pop() : '';
     }
+
     const uploadFile = async () => {
         if (!file || !title || !description) {
-            Alert.alert('Error', 'Please fill in all fields and select a file.');
+            Toast.show({
+                type: 'error',
+                text1: 'Missing Fields',
+                text2: 'Please fill in all fields and select a file.',
+                position: 'top',
+            });
             return;
         }
 
@@ -136,8 +162,6 @@ const AudioUpload = () => {
 
         try {
             const response = await fetch(`${apiUrl}/api/voice/upload-audio`, requestOptions);
-            //console.log(response);
-
             if (response.ok) {
                 const data = await response.json();
                 setModalVisible(false);
@@ -146,13 +170,24 @@ const AudioUpload = () => {
                     type: 'success',
                 });
             } else {
-                Alert.alert('Error', 'File upload failed!');
+                Toast.show({
+                    type: 'error',
+                    text1: 'File upload Failed',
+                    text2: 'File size may be too large or invalid format.',
+                    position: 'top',
+                    visibilityTime: 4000,
+                });
             }
 
             fetchAudioFiles();
         } catch (error) {
-            Alert.alert('Error', 'Error uploading file.');
-            //console.error('Error uploading file:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'File upload Failed',
+                text2: 'File size may be too large or invalid format.',
+                position: 'top',
+                visibilityTime: 4000,
+            });
         }
     };
 
@@ -229,17 +264,22 @@ const AudioUpload = () => {
     const stopSound = async () => {
         try {
             if (Platform.OS === "web") {
-                // Web: just reset state
+                if (webAudio.current) {
+                    webAudio.current.pause(); // stop playback
+                    webAudio.current.currentTime = 0; // reset time
+                    URL.revokeObjectURL(webAudio.current.src); // cleanup URL
+                    webAudio.current = null; // clear reference
+                }
+
                 setPlayingAudioId(null);
                 setIsLoaded(false);
                 return;
             }
 
-            // Native only
+            // --- ✅ Native (Android / iOS) ---
             if (sound.current) {
                 const currentSound = sound.current;
 
-                // Check if the sound object supports these methods
                 if (typeof currentSound.getStatusAsync === "function") {
                     const status = await currentSound.getStatusAsync().catch(() => null);
 
@@ -254,7 +294,6 @@ const AudioUpload = () => {
                     }
                 }
 
-                // Always clean up
                 sound.current = null;
             }
 
@@ -346,12 +385,23 @@ const AudioUpload = () => {
                 });
             }
             else {
-                Alert.alert('error', 'Update failed!');
+                Toast.show({
+                    type: 'error',
+                    text1: 'File upload Failed',
+                    text2: 'Please check your internet or try again later.',
+                    position: 'top',
+                    visibilityTime: 4000,
+                });
             }
             fetchAudioFiles();
         } catch (error) {
-            // //console.error('Error Updateing file:', error.message);
-            Alert.alert('Error', 'Error Updateing file.');
+            Toast.show({
+                type: 'error',
+                text1: 'File upload Failed',
+                text2: 'Please check your internet or try again later.',
+                position: 'top',
+                visibilityTime: 4000,
+            });
         }
     }
 
@@ -498,8 +548,9 @@ const AudioUpload = () => {
                         </View>
                     </View>
                 </View>
+                {/* ✅ Toast container must be rendered inside component tree */}
+                <Toast config={toastConfig} />
             </Modal>
-
         </View>
     );
 };

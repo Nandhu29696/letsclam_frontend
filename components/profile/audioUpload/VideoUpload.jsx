@@ -7,10 +7,29 @@ import { Alert, FlatList, Modal, Platform, StyleSheet, Text, TextInput, Touchabl
 import { LinearProgress, Switch } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AppContext } from '../../../AppContext';
-import Toast from 'react-native-toast-message';
 import { ActivityIndicator } from 'react-native-web';
 import { Picker } from '@react-native-picker/picker';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
+// ✅ Toast configuration
+const toastConfig = {
+    success: (props) => (
+        <BaseToast
+            {...props}
+            style={{ borderLeftColor: '#22c55e' }}
+            contentContainerStyle={{ paddingHorizontal: 15 }}
+            text1Style={{ fontSize: 15, fontWeight: '600' }}
+        />
+    ),
+    error: (props) => (
+        <ErrorToast
+            {...props}
+            style={{ borderLeftColor: '#ef4444' }}
+            text1Style={{ fontSize: 15, fontWeight: '600' }}
+            text2Style={{ fontSize: 13 }}
+        />
+    ),
+};
 
 const VideoUpload = () => {
     const { user, userToken, setIsLoggedIn, apiUrl } = useContext(AppContext);
@@ -88,7 +107,6 @@ const VideoUpload = () => {
                 setFile(selectedFile);
             }
         } catch (error) {
-            //console.error('Error picking file:', error);
         }
     };
 
@@ -99,7 +117,12 @@ const VideoUpload = () => {
 
     const uploadFile = async () => {
         if (!file || !title || !description) {
-            // Alert.alert('Error', 'Please fill in all fields and select a file.');
+            Toast.show({
+                type: 'error',
+                text1: 'Missing Fields',
+                text2: 'Please fill in all fields and select a file.',
+                position: 'top',
+            });
             return;
         }
         const formData = new FormData();
@@ -137,11 +160,22 @@ const VideoUpload = () => {
                 fetchVideoFiles();
                 setModalVisible(false);
             } else {
-                Alert.alert('Error', 'File upload failed!');
+                Toast.show({
+                    type: 'error',
+                    text1: 'File upload Failed',
+                    text2: 'File size may be too large or invalid format.',
+                    position: 'top',
+                    visibilityTime: 4000,
+                });
             }
         } catch (error) {
-            //console.error('Error uploading file:', error);
-            Alert.alert('Error', 'Error uploading file.');
+            Toast.show({
+                type: 'error',
+                text1: 'File upload Failed',
+                text2: 'File size may be too large or invalid format.',
+                position: 'top',
+                visibilityTime: 4000,
+            });
         }
     };
 
@@ -387,6 +421,8 @@ const VideoUpload = () => {
                             <Text style={styles.stopButtonText}>Stop Video</Text>
                         </TouchableOpacity>
                     </View>
+                    {/* ✅ Toast container must be rendered inside component tree */}
+                    <Toast config={toastConfig} />
                 </Modal>
             )}
         </View>
@@ -442,7 +478,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
     },
     fixedListContainer: {
-        height: 300, 
+        height: 300,
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
